@@ -551,7 +551,11 @@
 
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
                     <div class="bg-[#0b1121] border border-white/5 rounded-xl p-5 flex flex-col justify-center">
-                        <p class="text-[10px] text-pink-500 font-bold uppercase mb-3 tracking-widest" data-i18n="wiz_s7_ver_title">CHANNEL VERIFICATION</p>
+                        <div class="flex justify-between items-center mb-3">
+                            <p class="text-[10px] text-pink-500 font-bold uppercase tracking-widest" data-i18n="wiz_s7_ver_title">CHANNEL VERIFICATION</p>
+                            <i class="fas fa-exclamation-circle text-red-500 text-base animate-pulse"></i>
+                        </div>
+                        
                         <button class="w-full btn-verify text-white font-bold py-3 rounded-lg text-sm mb-3 animate-pulse uppercase tracking-wide" data-i18n="wiz_btn_verify_final">VERIFY CHANNEL OWNERSHIP</button>
                         <p class="text-[10px] text-gray-500 text-center" data-i18n="wiz_s7_ver_note">Completed via Google • Takes < 1 min</p>
                     </div>
@@ -617,12 +621,10 @@
         function resetWizard() {
             currentStep = 1;
             showStep(1);
-            // Сбрасываем состояния без прыжков
-            safeClassRemove('loading-state', 'hidden'); // Показываем лоадер (как исходное состояние для step 6)
+            safeClassRemove('loading-state', 'hidden');
             safeClassAdd('found-channel', 'hidden');
             safeClassAdd('error-state', 'hidden');
             
-            // Чистим поля
             const hInput = document.getElementById('input-handle');
             const nInput = document.getElementById('input-nickname');
             if(hInput) hInput.value = '';
@@ -706,9 +708,7 @@
                 console.log("API Response:", data);
 
                 if (response.ok) {
-                    // УСПЕХ! Обновляем UI безопасно
                     updateUI(data.title, data.avatar, data.subs, data.revenue);
-                    
                     safeClassAdd('loading-state', 'hidden');
                     safeClassRemove('found-channel', 'hidden');
                 } else {
@@ -727,35 +727,27 @@
             safeClassRemove('error-state', 'hidden');
         }
 
-        // Функция обновляет интерфейс и НЕ ПАДАЕТ, если чего-то нет
         function updateUI(title, avatar, subs, revenue) {
             try {
-                // 1. Обновляем Step 6 (Результат)
                 const resBox = document.getElementById('found-channel');
                 if (resBox) {
                     const img = resBox.querySelector('img');
                     const h3 = resBox.querySelector('h3');
-                    const subText = resBox.querySelector('.text-gray-400'); // Ищем по классу
-
+                    const subText = resBox.querySelector('.text-gray-400');
                     if(img) img.src = avatar;
                     if(h3) h3.innerText = title;
                     if(subText) subText.innerText = `• ${subs} Subscribers`;
                 }
 
-                // 2. Обновляем Step 7 (Финал)
                 const dashStep = document.getElementById('step-7');
                 if (dashStep) {
-                    // Ищем аватарку и тексты в дашборде
                     const dashImg = dashStep.querySelector('img');
                     if(dashImg) dashImg.src = avatar;
 
-                    // Ищем заголовки. Используем более надежный поиск.
-                    // Ищем все div-ы и проверяем совпадения, или используем специфичные классы
                     const accountBox = dashStep.querySelector('.bg-[#0b1121] .flex');
                     if(accountBox) {
-                         const titleEl = accountBox.querySelector('.text-white'); // Имя
-                         const subEl = accountBox.querySelector('.text-gray-400'); // Подписчики
-                         
+                         const titleEl = accountBox.querySelector('.text-white');
+                         const subEl = accountBox.querySelector('.text-gray-400');
                          if(titleEl) titleEl.innerText = title;
                          if(subEl) subEl.innerText = `${subs} subs • YouTube`;
                     }
@@ -765,12 +757,10 @@
                 }
             } catch(e) {
                 console.error("UI Update failed partially (non-critical):", e);
-                // Мы не выбрасываем ошибку дальше, чтобы экран успеха все равно показался
             }
         }
 
         function resetVerification() {
-            // Возврат на шаг ввода ссылки
             currentStep = 3;
             showStep(3);
             safeClassAdd('error-state', 'hidden');
