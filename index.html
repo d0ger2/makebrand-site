@@ -1,0 +1,745 @@
+<!DOCTYPE html>
+<html lang="en" class="scroll-smooth">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MakedBrand - Influencer Marketing Simplified</title>
+    
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Noto+Sans:wght@400;700&display=swap" rel="stylesheet">
+    
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <link href="https://unpkg.com/aos@2.3.1/dist/aos.css" rel="stylesheet">
+
+    <style>
+        body { font-family: 'Inter', 'Noto Sans', sans-serif; overflow-x: hidden; background-color: #020617; }
+        
+        /* --- VISUAL EFFECTS --- */
+        .bg-grid {
+            background-size: 50px 50px;
+            background-image: linear-gradient(to right, rgba(255, 255, 255, 0.03) 1px, transparent 1px),
+                              linear-gradient(to bottom, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
+            mask-image: radial-gradient(ellipse at center, black 40%, transparent 80%);
+        }
+
+        .blob {
+            position: absolute;
+            filter: blur(80px);
+            opacity: 0.4;
+            animation: float 10s ease-in-out infinite;
+            z-index: 0;
+        }
+        .blob-1 { top: 10%; left: 20%; width: 400px; height: 400px; background: #6366f1; animation-delay: 0s; }
+        .blob-2 { bottom: 20%; right: 10%; width: 500px; height: 500px; background: #a855f7; animation-delay: 2s; }
+        
+        @keyframes float {
+            0% { transform: translate(0px, 0px) scale(1); }
+            50% { transform: translate(-20px, 20px) scale(1.1); }
+            100% { transform: translate(0px, 0px) scale(1); }
+        }
+
+        /* Glassmorphism */
+        .glass-card {
+            background: rgba(15, 23, 42, 0.6);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            box-shadow: 0 4px 30px rgba(0, 0, 0, 0.1);
+        }
+        .glass-card:hover {
+            border-color: rgba(99, 102, 241, 0.3);
+            box-shadow: 0 0 20px rgba(99, 102, 241, 0.1);
+        }
+
+        /* Gradient Text */
+        .gradient-text {
+            background: linear-gradient(90deg, #818cf8, #c084fc, #f472b6);
+            background-size: 200% auto;
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            animation: gradientMove 4s linear infinite;
+        }
+        @keyframes gradientMove {
+            0% { background-position: 0% 50%; }
+            100% { background-position: 200% 50%; }
+        }
+
+        /* Running Ticker */
+        .ticker-wrapper {
+            overflow: hidden;
+            position: relative;
+            mask-image: linear-gradient(to right, transparent, black 5%, black 95%, transparent);
+        }
+        .ticker-track {
+            display: flex;
+            width: max-content;
+            animation: scroll 60s linear infinite; 
+        }
+        @keyframes scroll {
+            0% { transform: translateX(0); }
+            100% { transform: translateX(-50%); }
+        }
+
+        /* Dropdown */
+        .lang-dropdown {
+            opacity: 0;
+            visibility: hidden;
+            transform: translateY(-10px);
+            transition: all 0.3s ease;
+        }
+        .group:hover .lang-dropdown {
+            opacity: 1;
+            visibility: visible;
+            transform: translateY(0);
+        }
+
+        /* Modal Transitions */
+        .modal {
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.3s ease;
+        }
+        .modal.active {
+            opacity: 1;
+            visibility: visible;
+        }
+        .modal-content {
+            transform: scale(0.95);
+            transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+        .modal.active .modal-content {
+            transform: scale(1);
+        }
+
+        /* Wizard Styles */
+        .step { display: none; }
+        .step.active { display: block; animation: slideUp 0.4s ease forwards; }
+        @keyframes slideUp { 
+            from { opacity: 0; transform: translateY(20px); } 
+            to { opacity: 1; transform: translateY(0); } 
+        }
+
+        .input-glow:focus {
+            box-shadow: 0 0 20px rgba(99, 102, 241, 0.2);
+            border-color: #6366f1;
+        }
+
+        .platform-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px -10px rgba(0,0,0,0.5);
+        }
+
+        .btn-verify {
+            background: linear-gradient(135deg, #8b5cf6 0%, #6366f1 100%);
+            box-shadow: 0 4px 15px rgba(139, 92, 246, 0.4);
+        }
+        .btn-verify:hover {
+            background: linear-gradient(135deg, #7c3aed 0%, #4f46e5 100%);
+            box-shadow: 0 6px 20px rgba(139, 92, 246, 0.6);
+        }
+
+        /* PRELOADER */
+        #preloader {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: #020617;
+            z-index: 9999;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            transition: opacity 0.5s ease;
+        }
+        
+        .pill-btn { cursor: pointer; transition: all 0.2s; }
+        .pill-btn:hover { border-color: #6366f1; color: white; background-color: rgba(99, 102, 241, 0.1); }
+    </style>
+</head>
+<body class="text-white antialiased selection:bg-indigo-500 selection:text-white">
+
+    <div id="preloader">
+        <div class="flex flex-col items-center">
+            <svg class="h-16 w-16 text-indigo-500 animate-bounce" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M12 2L2 7L12 12L22 7L12 2Z" fill="currentColor"/>
+                <path opacity="0.5" d="M2 17L12 22L22 17" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                <path opacity="0.5" d="M2 12L12 17L22 12" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+            <span class="mt-4 text-indigo-400 font-bold tracking-[0.2em] animate-pulse">LOADING...</span>
+        </div>
+    </div>
+
+    <div class="fixed inset-0 z-[-1] overflow-hidden pointer-events-none">
+        <div class="absolute inset-0 bg-slate-950"></div>
+        <div class="absolute inset-0 bg-grid opacity-40"></div>
+        <div class="blob blob-1"></div>
+        <div class="blob blob-2"></div>
+    </div>
+
+    <nav class="fixed w-full z-50 bg-slate-950/70 backdrop-blur-xl border-b border-white/5 transition-all duration-300">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between items-center h-20">
+                <div class="flex-shrink-0 flex items-center cursor-pointer group">
+                    <div class="bg-indigo-500/10 p-2 rounded-lg mr-3 group-hover:bg-indigo-500/20 transition">
+                        <svg class="h-6 w-6 text-indigo-400 group-hover:text-indigo-300 transition" viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M12 2L2 7L12 12L22 7L12 2Z" fill="currentColor"/>
+                            <path opacity="0.5" d="M2 17L12 22L22 17" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                            <path opacity="0.5" d="M2 12L12 17L22 12" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                        </svg>
+                    </div>
+                    <span class="text-2xl font-bold tracking-tighter">Maked<span class="text-indigo-500">Brand</span></span>
+                </div>
+                
+                <div class="hidden md:flex space-x-6 items-center">
+                    <a href="#about" class="text-sm font-medium text-gray-400 hover:text-white transition" data-i18n="nav_about">Who we are</a>
+                    <a href="#team" class="text-sm font-medium text-gray-400 hover:text-white transition" data-i18n="nav_team">Team</a>
+                    <a href="#partners" class="text-sm font-medium text-gray-400 hover:text-white transition" data-i18n="nav_partners">Brands</a>
+                    
+                    <div class="relative group py-4 px-2">
+                        <button class="flex items-center text-gray-300 hover:text-white focus:outline-none bg-white/5 px-3 py-1.5 rounded-full border border-white/5 hover:border-white/20 transition">
+                            <img id="current-flag" src="https://flagcdn.com/w40/us.png" class="w-5 h-3.5 object-cover rounded-sm mr-2 opacity-90">
+                            <span id="current-lang-label" class="uppercase font-bold text-xs tracking-wide">EN</span> 
+                        </button>
+                        <div class="absolute right-0 top-16 w-48 bg-[#0f172a] border border-white/10 rounded-xl shadow-2xl lang-dropdown overflow-hidden z-50 backdrop-blur-xl">
+                            <a href="#" onclick="changeLang('en', 'us')" class="flex items-center px-4 py-3 text-sm text-gray-400 hover:bg-indigo-600 hover:text-white transition border-b border-white/5"><img src="https://flagcdn.com/w40/us.png" class="w-5 h-auto mr-3 rounded-sm"> English</a>
+                            <a href="#" onclick="changeLang('ru', 'ru')" class="flex items-center px-4 py-3 text-sm text-gray-400 hover:bg-indigo-600 hover:text-white transition border-b border-white/5"><img src="https://flagcdn.com/w40/ru.png" class="w-5 h-auto mr-3 rounded-sm"> Русский</a>
+                            <a href="#" onclick="changeLang('hi', 'in')" class="flex items-center px-4 py-3 text-sm text-gray-400 hover:bg-indigo-600 hover:text-white transition border-b border-white/5"><img src="https://flagcdn.com/w40/in.png" class="w-5 h-auto mr-3 rounded-sm"> Hindi</a>
+                            <a href="#" onclick="changeLang('es', 'es')" class="flex items-center px-4 py-3 text-sm text-gray-400 hover:bg-indigo-600 hover:text-white transition border-b border-white/5"><img src="https://flagcdn.com/w40/es.png" class="w-5 h-auto mr-3 rounded-sm"> Español</a>
+                            <a href="#" onclick="changeLang('fr', 'fr')" class="flex items-center px-4 py-3 text-sm text-gray-400 hover:bg-indigo-600 hover:text-white transition border-b border-white/5"><img src="https://flagcdn.com/w40/fr.png" class="w-5 h-auto mr-3 rounded-sm"> Français</a>
+                            <a href="#" onclick="changeLang('de', 'de')" class="flex items-center px-4 py-3 text-sm text-gray-400 hover:bg-indigo-600 hover:text-white transition border-b border-white/5"><img src="https://flagcdn.com/w40/de.png" class="w-5 h-auto mr-3 rounded-sm"> Deutsch</a>
+                            <a href="#" onclick="changeLang('pt', 'pt')" class="flex items-center px-4 py-3 text-sm text-gray-400 hover:bg-indigo-600 hover:text-white transition"><img src="https://flagcdn.com/w40/pt.png" class="w-5 h-auto mr-3 rounded-sm"> Português</a>
+                        </div>
+                    </div>
+
+                    <button onclick="openWizard()" class="bg-indigo-600 hover:bg-indigo-500 text-white px-6 py-2.5 rounded-full font-semibold text-sm transition shadow-[0_0_20px_-5px_rgba(99,102,241,0.5)] hover:shadow-[0_0_30px_-5px_rgba(99,102,241,0.7)] hover:-translate-y-0.5" data-i18n="btn_start">
+                        Get Started
+                    </button>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <section class="relative pt-32 pb-20 lg:pt-48 lg:pb-32 overflow-hidden min-h-screen flex items-center">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center relative z-10">
+            <div data-aos="fade-down" class="inline-flex items-center px-4 py-1.5 mb-8 rounded-full bg-white/5 border border-white/10 text-indigo-300 text-xs font-bold uppercase tracking-widest backdrop-blur-md shadow-lg">
+                <span class="w-2 h-2 rounded-full bg-indigo-500 mr-2 animate-pulse"></span>
+                <span data-i18n="hero_badge">Agency-Level Execution</span>
+            </div>
+            
+            <h1 data-aos="fade-up" data-aos-delay="100" class="text-6xl md:text-8xl font-bold tracking-tight mb-8 leading-tight">
+                <span data-i18n="hero_title_1">Your Ads.</span> <br>
+                <span class="gradient-text drop-shadow-2xl" data-i18n="hero_title_2">Perfect Execution.</span>
+            </h1>
+            
+            <p data-aos="fade-up" data-aos-delay="200" class="mt-6 max-w-2xl mx-auto text-xl text-gray-400 leading-relaxed font-light" data-i18n="hero_desc">
+                MakedBrand connects your vision with top-tier creators. You set the goal — we handle the execution end-to-end.
+            </p>
+            
+            <div data-aos="fade-up" data-aos-delay="300" class="mt-12 flex flex-col sm:flex-row justify-center gap-5">
+                <button onclick="openWizard()" class="px-8 py-4 bg-white text-slate-950 font-bold rounded-xl hover:bg-gray-100 transition transform hover:-translate-y-1 hover:shadow-[0_0_40px_-10px_rgba(255,255,255,0.3)]" data-i18n="btn_start">
+                    Get Started
+                </button>
+                <a href="#about" class="px-8 py-4 bg-white/5 border border-white/10 text-white font-bold rounded-xl hover:bg-white/10 hover:border-white/20 transition transform hover:-translate-y-1 backdrop-blur-md" data-i18n="btn_how">
+                    How it works
+                </a>
+            </div>
+        </div>
+    </section>
+
+    <section class="py-10 border-b border-white/5 relative z-10">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-8 divide-y md:divide-y-0 md:divide-x divide-white/10">
+                <div class="text-center p-4" data-aos="fade-up" data-aos-delay="0">
+                    <div class="text-4xl font-bold text-white mb-1">5,000+</div>
+                    <div class="text-indigo-400 text-sm font-semibold uppercase tracking-wider" data-i18n="stat_1">Vetted Creators</div>
+                </div>
+                <div class="text-center p-4" data-aos="fade-up" data-aos-delay="100">
+                    <div class="text-4xl font-bold text-white mb-1">98%</div>
+                    <div class="text-indigo-400 text-sm font-semibold uppercase tracking-wider" data-i18n="stat_2">Success Rate</div>
+                </div>
+                <div class="text-center p-4" data-aos="fade-up" data-aos-delay="200">
+                    <div class="text-4xl font-bold text-white mb-1">3.5x</div>
+                    <div class="text-indigo-400 text-sm font-semibold uppercase tracking-wider" data-i18n="stat_3">Average ROI</div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section id="partners" class="py-14 border-y border-white/5 bg-slate-950/30 backdrop-blur-sm">
+        <div class="max-w-7xl mx-auto px-4 mb-10 text-center">
+             <p class="text-xs text-gray-500 uppercase tracking-[0.3em] font-bold" data-i18n="partners_title">Trusted by Global Brands</p>
+        </div>
+        <div class="ticker-wrapper">
+            <div class="ticker-track flex items-center gap-24 px-10 grayscale opacity-60 hover:opacity-100 hover:grayscale-0 transition-all duration-500">
+                <i class="fab fa-aws text-5xl text-white"></i><i class="fab fa-google text-4xl text-white"></i><i class="fab fa-meta text-4xl text-blue-500"></i><i class="fab fa-stripe text-6xl text-white"></i><i class="fab fa-tiktok text-4xl text-white"></i><i class="fab fa-airbnb text-6xl text-white"></i><i class="fab fa-spotify text-5xl text-green-500"></i><i class="fab fa-microsoft text-4xl text-white"></i><i class="fab fa-apple text-5xl text-white"></i><i class="fab fa-playstation text-5xl text-blue-400"></i><i class="fab fa-uber text-6xl text-white"></i><i class="fab fa-paypal text-4xl text-blue-600"></i>
+                <i class="fab fa-aws text-5xl text-white"></i><i class="fab fa-google text-4xl text-white"></i><i class="fab fa-meta text-4xl text-blue-500"></i><i class="fab fa-stripe text-6xl text-white"></i><i class="fab fa-tiktok text-4xl text-white"></i><i class="fab fa-airbnb text-6xl text-white"></i><i class="fab fa-spotify text-5xl text-green-500"></i><i class="fab fa-microsoft text-4xl text-white"></i><i class="fab fa-apple text-5xl text-white"></i><i class="fab fa-playstation text-5xl text-blue-400"></i><i class="fab fa-uber text-6xl text-white"></i><i class="fab fa-paypal text-4xl text-blue-600"></i>
+            </div>
+        </div>
+    </section>
+
+    <section id="about" class="py-32 relative">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-20 items-center">
+                <div data-aos="fade-right">
+                    <h2 class="text-4xl md:text-5xl font-bold mb-8 leading-tight" data-i18n="about_title">Forget Manual Search</h2>
+                    <p class="text-gray-400 text-lg mb-10 leading-relaxed font-light" data-i18n="about_desc">Stop writing hundreds of cold emails. MakedBrand automates the routine, connecting you with verified creators instantly.</p>
+                    <div class="space-y-6">
+                        <div class="glass-card p-6 rounded-2xl flex items-start group transition-all duration-300">
+                            <div class="flex-shrink-0 mt-1"><div class="flex items-center justify-center h-10 w-10 rounded-full bg-indigo-500/10 text-indigo-400 group-hover:bg-indigo-500 group-hover:text-white transition"><i class="fas fa-paper-plane text-sm"></i></div></div>
+                            <div class="ml-5"><h3 class="text-lg font-bold text-white mb-1" data-i18n="step_1_title">1. Send Brief</h3><p class="text-gray-400 text-sm" data-i18n="step_1_desc">Upload materials and define your audience.</p></div>
+                        </div>
+                        <div class="glass-card p-6 rounded-2xl flex items-start group transition-all duration-300">
+                            <div class="flex-shrink-0 mt-1"><div class="flex items-center justify-center h-10 w-10 rounded-full bg-indigo-500/10 text-indigo-400 group-hover:bg-indigo-500 group-hover:text-white transition"><i class="fas fa-users-cog text-sm"></i></div></div>
+                            <div class="ml-5"><h3 class="text-lg font-bold text-white mb-1" data-i18n="step_2_title">2. We Match</h3><p class="text-gray-400 text-sm" data-i18n="step_2_desc">Our algorithm finds the best creators.</p></div>
+                        </div>
+                        <div class="glass-card p-6 rounded-2xl flex items-start group transition-all duration-300">
+                            <div class="flex-shrink-0 mt-1"><div class="flex items-center justify-center h-10 w-10 rounded-full bg-indigo-500/10 text-indigo-400 group-hover:bg-indigo-500 group-hover:text-white transition"><i class="fas fa-chart-line text-sm"></i></div></div>
+                            <div class="ml-5"><h3 class="text-lg font-bold text-white mb-1" data-i18n="step_3_title">3. Launch</h3><p class="text-gray-400 text-sm" data-i18n="step_3_desc">Campaign starts. Full transparency.</p></div>
+                        </div>
+                    </div>
+                </div>
+                <div class="relative group" data-aos="fade-left">
+                    <div class="absolute -inset-2 bg-gradient-to-r from-indigo-500 to-purple-600 rounded-2xl blur-xl opacity-30 group-hover:opacity-50 transition duration-1000"></div>
+                    <img src="https://images.unsplash.com/photo-1551288049-bebda4e38f71?q=80&w=2070&auto=format&fit=crop" alt="Dashboard" class="relative rounded-2xl border border-white/10 shadow-2xl w-full hover:scale-[1.01] transition duration-500 object-cover">
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="py-24 relative bg-slate-950/50">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="text-center mb-16">
+                <h2 class="text-3xl font-bold mb-4" data-i18n="reviews_title">What Our Clients Say</h2>
+            </div>
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                <div class="glass-card p-8 rounded-2xl">
+                    <div class="flex items-center mb-4 text-yellow-500 text-sm"><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i></div>
+                    <p class="text-gray-300 mb-6 italic" data-i18n="rev_1">"MakedBrand saved us 20 hours a week on outreach. The quality of creators is outstanding."</p>
+                    <div class="flex items-center">
+                        <img src="https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=100&h=100" class="w-10 h-10 rounded-full mr-3">
+                        <div><h4 class="text-white text-sm font-bold">Elena R.</h4><p class="text-gray-500 text-xs">CMO at TechStart</p></div>
+                    </div>
+                </div>
+                <div class="glass-card p-8 rounded-2xl">
+                    <div class="flex items-center mb-4 text-yellow-500 text-sm"><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i></div>
+                    <p class="text-gray-300 mb-6 italic" data-i18n="rev_2">"The ROI we got from the first campaign paid for the service 10x over. Highly recommended."</p>
+                    <div class="flex items-center">
+                        <img src="https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=100&h=100" class="w-10 h-10 rounded-full mr-3">
+                        <div><h4 class="text-white text-sm font-bold">Mark D.</h4><p class="text-gray-500 text-xs">Founder, AppScale</p></div>
+                    </div>
+                </div>
+                <div class="glass-card p-8 rounded-2xl">
+                    <div class="flex items-center mb-4 text-yellow-500 text-sm"><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i></div>
+                    <p class="text-gray-300 mb-6 italic" data-i18n="rev_3">"Finally, an agency that understands crypto marketing nuances. Seamless execution."</p>
+                    <div class="flex items-center">
+                        <img src="https://images.unsplash.com/photo-1570295999919-56ceb5ecca61?auto=format&fit=crop&w=100&h=100" class="w-10 h-10 rounded-full mr-3">
+                        <div><h4 class="text-white text-sm font-bold">John T.</h4><p class="text-gray-500 text-xs">Marketing Lead, BlockChainZ</p></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section id="team" class="py-32 relative overflow-hidden">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
+            <div class="text-center mb-20" data-aos="fade-up">
+                <h2 class="text-4xl font-bold mb-4" data-i18n="team_title">Our Team</h2>
+                <p class="text-gray-400 max-w-2xl mx-auto" data-i18n="team_desc">The people behind your marketing success.</p>
+            </div>
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
+                <div data-aos="fade-up" data-aos-delay="100" class="glass-card p-8 text-center rounded-2xl group relative overflow-hidden">
+                    <div class="relative w-32 h-32 mx-auto mb-6"><img class="w-full h-full rounded-full border-2 border-white/10 object-cover group-hover:border-indigo-500 transition duration-500" src="https://images.unsplash.com/photo-1560250097-0b93528c311a?q=80&w=400&auto=format&fit=crop" alt="Alex"></div>
+                    <h3 class="text-xl font-bold text-white mb-1">Alex Maker</h3>
+                    <p class="text-indigo-400 text-xs font-bold uppercase tracking-wider mb-2">FOUNDER</p>
+                </div>
+                <div data-aos="fade-up" data-aos-delay="200" class="glass-card p-8 text-center rounded-2xl group relative overflow-hidden ring-1 ring-indigo-500/50">
+                    <div class="absolute top-0 right-0 bg-indigo-600/90 backdrop-blur-md text-white text-[10px] px-3 py-1.5 rounded-bl-xl font-bold tracking-wider shadow-lg">LEAD</div>
+                    <div class="relative w-32 h-32 mx-auto mb-6"><img class="w-full h-full rounded-full border-2 border-white/10 object-cover group-hover:border-indigo-500 transition duration-500" src="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?q=80&w=400&auto=format&fit=crop" alt="Jesse"></div>
+                    <h3 class="text-xl font-bold text-white mb-1">Jesse Monicato</h3>
+                    <p class="text-indigo-400 text-xs font-bold uppercase tracking-wider mb-2">PARTNERSHIPS</p>
+                </div>
+                <div data-aos="fade-up" data-aos-delay="300" class="glass-card p-8 text-center rounded-2xl group relative overflow-hidden">
+                    <div class="relative w-32 h-32 mx-auto mb-6"><img class="w-full h-full rounded-full border-2 border-white/10 object-cover group-hover:border-indigo-500 transition duration-500" src="https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?q=80&w=400&auto=format&fit=crop" alt="Sarah"></div>
+                    <h3 class="text-xl font-bold text-white mb-1">Sarah Connor</h3>
+                    <p class="text-indigo-400 text-xs font-bold uppercase tracking-wider mb-2">HEAD OF CREATORS</p>
+                </div>
+                <div data-aos="fade-up" data-aos-delay="400" class="glass-card p-8 text-center rounded-2xl group relative overflow-hidden">
+                    <div class="relative w-32 h-32 mx-auto mb-6"><img class="w-full h-full rounded-full border-2 border-white/10 object-cover group-hover:border-indigo-500 transition duration-500" src="https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?q=80&w=400&auto=format&fit=crop" alt="Mike"></div>
+                    <h3 class="text-xl font-bold text-white mb-1">Mike Code</h3>
+                    <p class="text-indigo-400 text-xs font-bold uppercase tracking-wider mb-2">TECH LEAD</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="py-24 border-t border-white/5">
+        <div class="max-w-3xl mx-auto px-4">
+            <h2 class="text-3xl font-bold mb-10 text-center" data-i18n="faq_title">Frequently Asked Questions</h2>
+            <div class="space-y-4">
+                <details class="group glass-card rounded-xl p-4 cursor-pointer">
+                    <summary class="flex justify-between items-center font-medium text-white list-none"><span data-i18n="faq_q1">How fast can we launch a campaign?</span><span class="transition group-open:rotate-180"><i class="fas fa-chevron-down text-indigo-500"></i></span></summary>
+                    <p class="text-gray-400 mt-4 text-sm leading-relaxed" data-i18n="faq_a1">Typically, we can match you with creators and have the first content pieces live within 7-10 days after you submit the brief.</p>
+                </details>
+                <details class="group glass-card rounded-xl p-4 cursor-pointer">
+                    <summary class="flex justify-between items-center font-medium text-white list-none"><span data-i18n="faq_q2">Do you handle payments to creators?</span><span class="transition group-open:rotate-180"><i class="fas fa-chevron-down text-indigo-500"></i></span></summary>
+                    <p class="text-gray-400 mt-4 text-sm leading-relaxed" data-i18n="faq_a2">Yes. You pay us a single invoice, and we handle all individual payouts, tax forms, and negotiations with creators.</p>
+                </details>
+                <details class="group glass-card rounded-xl p-4 cursor-pointer">
+                    <summary class="flex justify-between items-center font-medium text-white list-none"><span data-i18n="faq_q3">What minimum budget is required?</span><span class="transition group-open:rotate-180"><i class="fas fa-chevron-down text-indigo-500"></i></span></summary>
+                    <p class="text-gray-400 mt-4 text-sm leading-relaxed" data-i18n="faq_a3">We work with budgets starting from $2,000/month. This ensures we can get you high-quality creators that drive actual results.</p>
+                </details>
+            </div>
+        </div>
+    </section>
+
+    <footer class="bg-slate-950/80 backdrop-blur-xl py-12 border-t border-white/5 text-sm relative z-10">
+        <div class="max-w-7xl mx-auto px-4 grid grid-cols-1 md:grid-cols-4 gap-12">
+            <div class="col-span-1 md:col-span-1">
+                <span class="text-xl font-bold text-white">Maked<span class="text-indigo-500">Brand</span></span>
+                <p class="mt-4 text-gray-500">© 2026 MakedBrand Inc.<br>All rights reserved.</p>
+            </div>
+            <div>
+                <h4 class="text-white font-bold mb-6">Platform</h4>
+                <ul class="space-y-3 text-gray-500">
+                    <li><a href="#" class="hover:text-indigo-400 transition" data-i18n="ft_brands">For Brands</a></li>
+                    <li><a href="#" class="hover:text-indigo-400 transition" data-i18n="ft_creators">For Creators</a></li>
+                    <li><a href="#" class="hover:text-indigo-400 transition" data-i18n="ft_pricing">Pricing</a></li>
+                </ul>
+            </div>
+            <div>
+                <h4 class="text-white font-bold mb-6">Legal</h4>
+                <ul class="space-y-3 text-gray-500">
+                    <li><button onclick="openModal('privacy-modal')" class="hover:text-indigo-400 transition text-left">Privacy Policy</button></li>
+                    <li><button onclick="openModal('terms-modal')" class="hover:text-indigo-400 transition text-left">Terms of Service</button></li>
+                </ul>
+            </div>
+        </div>
+    </footer>
+
+    <div id="wizard-modal" class="modal fixed inset-0 z-[100] flex items-center justify-center p-4">
+        <div class="absolute inset-0 bg-slate-950/60 backdrop-blur-xl transition-all duration-500" onclick="closeWizard()"></div>
+        
+        <div class="modal-content relative bg-[#0f172a] border border-white/10 rounded-2xl max-w-xl w-full p-8 shadow-[0_0_50px_-12px_rgb(99,102,241,0.25)] overflow-hidden min-h-[550px] flex flex-col">
+            
+            <button onclick="closeWizard()" class="absolute top-4 right-4 text-gray-400 hover:text-white z-10 hover:rotate-90 transition duration-300"><i class="fas fa-times text-xl"></i></button>
+
+            <div class="flex justify-center items-center gap-2 mb-8" id="progress-container">
+                <div class="progress-pill h-1.5 rounded-full bg-slate-800 flex-1 overflow-hidden"><div class="h-full bg-indigo-500 w-0 transition-all duration-500" id="bar-1"></div></div>
+                <div class="progress-pill h-1.5 rounded-full bg-slate-800 flex-1 overflow-hidden"><div class="h-full bg-indigo-500 w-0 transition-all duration-500" id="bar-2"></div></div>
+                <div class="progress-pill h-1.5 rounded-full bg-slate-800 flex-1 overflow-hidden"><div class="h-full bg-indigo-500 w-0 transition-all duration-500" id="bar-3"></div></div>
+                <div class="progress-pill h-1.5 rounded-full bg-slate-800 flex-1 overflow-hidden"><div class="h-full bg-indigo-500 w-0 transition-all duration-500" id="bar-4"></div></div>
+                <div class="progress-pill h-1.5 rounded-full bg-slate-800 flex-1 overflow-hidden"><div class="h-full bg-indigo-500 w-0 transition-all duration-500" id="bar-5"></div></div>
+                <div class="progress-pill h-1.5 rounded-full bg-slate-800 flex-1 overflow-hidden"><div class="h-full bg-indigo-500 w-0 transition-all duration-500" id="bar-6"></div></div>
+            </div>
+
+            <div class="text-center text-indigo-400 text-xs font-bold uppercase tracking-[0.2em] mb-4" id="step-indicator">Step 1 of 6</div>
+
+            <div class="step active" id="step-1">
+                <h2 class="text-3xl font-bold text-white mb-2" data-i18n="wiz_s1_title">What is your nickname?</h2>
+                <div class="text-gray-400 text-sm mb-8 flex flex-wrap gap-2 items-center">
+                    <span data-i18n="wiz_examples">Try:</span> 
+                    <span onclick="fillInput('input-nickname', 'Charli D\'Amelio')" class="pill-btn px-3 py-1 rounded-full bg-slate-800 text-indigo-300 text-xs border border-indigo-500/30 hover:bg-indigo-500 hover:text-white">Charli D'Amelio</span>
+                    <span onclick="fillInput('input-nickname', 'MrBeast')" class="pill-btn px-3 py-1 rounded-full bg-slate-800 text-indigo-300 text-xs border border-indigo-500/30 hover:bg-indigo-500 hover:text-white">MrBeast</span>
+                </div>
+                <input type="text" id="input-nickname" class="input-glow w-full bg-slate-800/50 border border-white/10 rounded-2xl p-5 text-white text-xl focus:outline-none transition mb-8 placeholder-gray-600" placeholder="Type your nickname...">
+                <button onclick="nextStep()" class="w-full bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white font-bold py-4 rounded-xl transition shadow-lg shadow-indigo-500/20 flex justify-center items-center group">
+                    <span data-i18n="wiz_btn_continue">Continue</span> <i class="fas fa-arrow-right ml-2 group-hover:translate-x-1 transition"></i>
+                </button>
+            </div>
+
+            <div class="step" id="step-2">
+                <h2 class="text-3xl font-bold text-white mb-8" data-i18n="wiz_s2_title">Choose your platform</h2>
+                <div class="grid gap-4">
+                    <button onclick="nextStep()" class="platform-btn flex items-center justify-between p-6 bg-slate-800/50 border border-white/10 rounded-2xl hover:border-red-500/50 hover:bg-red-500/10 transition group text-left">
+                        <div class="flex items-center"><i class="fab fa-youtube text-4xl text-red-500 mr-5"></i><span class="text-2xl font-bold">YouTube</span></div>
+                        <i class="fas fa-chevron-right text-gray-600 group-hover:text-red-500 text-xl"></i>
+                    </button>
+                </div>
+                <div class="mt-8 text-center"><button onclick="prevStep()" class="text-gray-500 hover:text-white text-sm transition" data-i18n="wiz_btn_back">Go Back</button></div>
+            </div>
+
+            <div class="step" id="step-3">
+                <h2 class="text-3xl font-bold text-white mb-2" data-i18n="wiz_s3_title">Your Channel Link</h2>
+                <p class="text-gray-400 text-sm mb-8" data-i18n="wiz_s3_desc">Paste your @handle or full URL.</p>
+                
+                <div class="relative mb-6">
+                    <i class="fas fa-link absolute left-5 top-5 text-gray-500 text-lg"></i>
+                    <input type="text" id="input-handle" class="input-glow w-full bg-slate-800/50 border border-white/10 rounded-2xl p-5 pl-14 text-white text-lg focus:outline-none transition" placeholder="e.g. @mrbeast">
+                </div>
+                
+                <div class="flex flex-wrap gap-2 mb-8">
+                    <span onclick="fillInput('input-handle', '@mrbeast')" class="pill-btn text-xs bg-slate-800/80 text-gray-400 px-3 py-1.5 rounded-lg border border-white/5 hover:border-indigo-500 hover:text-white">@mrbeast</span>
+                    <span onclick="fillInput('input-handle', 'youtube.com/@mrbeast')" class="pill-btn text-xs bg-slate-800/80 text-gray-400 px-3 py-1.5 rounded-lg border border-white/5 hover:border-indigo-500 hover:text-white">youtube.com/@mrbeast</span>
+                </div>
+                
+                <button onclick="nextStep()" class="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-4 rounded-xl transition shadow-lg shadow-indigo-500/20" data-i18n="wiz_btn_find">Find Channel</button>
+                <div class="mt-6 text-center"><button onclick="prevStep()" class="text-gray-500 hover:text-white text-sm" data-i18n="wiz_btn_back">Back</button></div>
+            </div>
+
+            <div class="step" id="step-4">
+                <h2 class="text-3xl font-bold text-white mb-8" data-i18n="wiz_s4_title">Audience Size</h2>
+                <div class="grid grid-cols-1 gap-3">
+                    <button onclick="nextStep()" class="text-left p-4 bg-slate-800/50 border border-white/5 rounded-xl hover:border-indigo-500 hover:bg-slate-800 transition flex justify-between group"><span>Under 10k</span><div class="w-4 h-4 rounded-full border border-gray-600 group-hover:border-indigo-500 group-hover:bg-indigo-500"></div></button>
+                    <button onclick="nextStep()" class="text-left p-4 bg-slate-800/50 border border-white/5 rounded-xl hover:border-indigo-500 hover:bg-slate-800 transition flex justify-between group"><span>10k - 100k</span><div class="w-4 h-4 rounded-full border border-gray-600 group-hover:border-indigo-500 group-hover:bg-indigo-500"></div></button>
+                    <button onclick="nextStep()" class="text-left p-4 bg-slate-800/50 border border-white/5 rounded-xl hover:border-indigo-500 hover:bg-slate-800 transition flex justify-between group"><span>100k - 1M</span><div class="w-4 h-4 rounded-full border border-gray-600 group-hover:border-indigo-500 group-hover:bg-indigo-500"></div></button>
+                    <button onclick="nextStep()" class="text-left p-4 bg-slate-700/50 border border-indigo-500 rounded-xl shadow-[0_0_15px_rgba(99,102,241,0.2)] transition flex justify-between font-bold text-white"><span>1M - 10M (Pro Tier)</span><div class="w-4 h-4 rounded-full bg-indigo-500 border border-indigo-500"></div></button>
+                    <button onclick="nextStep()" class="text-left p-4 bg-slate-800/50 border border-white/5 rounded-xl hover:border-indigo-500 hover:bg-slate-800 transition flex justify-between group"><span>10M+</span><div class="w-4 h-4 rounded-full border border-gray-600 group-hover:border-indigo-500 group-hover:bg-indigo-500"></div></button>
+                </div>
+                <div class="mt-6 text-center"><button onclick="prevStep()" class="text-gray-500 hover:text-white text-sm" data-i18n="wiz_btn_back">Back</button></div>
+            </div>
+
+            <div class="step" id="step-5">
+                <h2 class="text-3xl font-bold text-white mb-2" data-i18n="wiz_s5_title">Contact Details</h2>
+                <p class="text-gray-400 text-sm mb-8" data-i18n="wiz_s5_desc">Where should we send campaign offers?</p>
+                <input type="text" class="input-glow w-full bg-slate-800/50 border border-white/10 rounded-2xl p-5 text-white text-lg focus:outline-none transition mb-8" placeholder="Email or Phone">
+                <button onclick="startVerification()" class="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-4 rounded-xl transition shadow-lg shadow-indigo-500/20" data-i18n="wiz_btn_verify_c">Verify & Continue</button>
+                <div class="mt-6 text-center"><button onclick="prevStep()" class="text-gray-500 hover:text-white text-sm" data-i18n="wiz_btn_back">Back</button></div>
+            </div>
+
+            <div class="step" id="step-6">
+                <div id="loading-state" class="text-center py-20">
+                    <div class="relative w-20 h-20 mx-auto mb-6">
+                        <div class="absolute inset-0 rounded-full border-4 border-indigo-900"></div>
+                        <div class="absolute inset-0 rounded-full border-4 border-indigo-500 border-t-transparent animate-spin"></div>
+                    </div>
+                    <p class="text-white text-xl font-medium animate-pulse" data-i18n="wiz_analyzing">Analyzing Channel Data...</p>
+                    <p class="text-gray-500 text-sm mt-2">Connecting to API</p>
+                </div>
+                
+                <div id="found-channel" class="hidden animate-fade-in">
+                    <h2 class="text-3xl font-bold text-white mb-8 text-center" data-i18n="wiz_s6_title">Is this you?</h2>
+                    
+                    <div class="bg-black/40 border border-white/10 rounded-2xl p-6 flex items-center mb-8 hover:border-indigo-500/50 transition">
+                        <img src="https://yt3.googleusercontent.com/ytc/AIdro_nKk8qf8f5f5q5q5q5q5q5q5q5q5q5q5q5q5q=s176-c-k-c0x00ffffff-no-rj" class="w-20 h-20 rounded-full mr-5 border-4 border-slate-800 shadow-xl" alt="Avatar">
+                        <div>
+                            <h3 class="text-2xl font-bold text-white">MrBeast</h3>
+                            <div class="flex items-center mt-1 space-x-3 text-sm">
+                                <span class="bg-red-600 text-white px-2 py-0.5 rounded text-[10px] font-bold">YOUTUBE</span>
+                                <span class="text-gray-400">• 465M Subscribers</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="flex gap-4">
+                        <button onclick="showFinalDashboard()" class="flex-1 bg-green-600 hover:bg-green-500 text-white font-bold py-4 rounded-xl transition shadow-lg shadow-green-500/20" data-i18n="wiz_btn_yes">Yes, it's me</button>
+                        <button onclick="resetVerification()" class="flex-1 bg-slate-800 hover:bg-slate-700 text-white font-bold py-4 rounded-xl transition" data-i18n="wiz_btn_no">Not me</button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="step" id="step-7">
+                <div class="text-center mb-6">
+                    <h2 class="text-2xl font-bold text-white" data-i18n="wiz_s7_title">Join MakedBrand Creator Network</h2>
+                    <p class="text-gray-400 text-sm" data-i18n="wiz_s7_subtitle">Work with top brands and monetize your influence</p>
+                </div>
+
+                <div class="bg-slate-900 border border-slate-800 rounded-xl p-4 flex items-center mb-4">
+                    <div class="bg-indigo-500/10 p-2 rounded-full mr-4"><i class="fas fa-check text-indigo-400"></i></div>
+                    <div>
+                        <h4 class="font-bold text-white text-sm" data-i18n="wiz_s7_status">Profile review completed</h4>
+                        <p class="text-xs text-gray-500" data-i18n="wiz_s7_desc">One final step - verify ownership so brands can find you.</p>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                    <div class="bg-[#0b1121] border border-white/5 rounded-xl p-5 flex flex-col justify-center">
+                        <p class="text-[10px] text-pink-500 font-bold uppercase mb-3 tracking-widest" data-i18n="wiz_s7_ver_title">CHANNEL VERIFICATION</p>
+                        <button class="w-full btn-verify text-white font-bold py-3 rounded-lg text-sm mb-3 animate-pulse uppercase tracking-wide" data-i18n="wiz_btn_verify_final">VERIFY CHANNEL OWNERSHIP</button>
+                        <p class="text-[10px] text-gray-500 text-center" data-i18n="wiz_s7_ver_note">Completed via Google • Takes < 1 min</p>
+                    </div>
+                    <div class="bg-[#0b1121] border border-white/5 rounded-xl p-5">
+                        <p class="text-[10px] text-white font-bold mb-3 uppercase tracking-widest" data-i18n="wiz_s7_acc">Accounts</p>
+                        <div class="flex items-center bg-slate-900/50 border border-white/5 p-3 rounded-lg">
+                            <img src="https://yt3.googleusercontent.com/ytc/AIdro_nKk8qf8f5f5q5q5q5q5q5q5q5q5q5q5q5q5q=s176-c-k-c0x00ffffff-no-rj" class="w-10 h-10 rounded-full mr-3 border border-slate-700">
+                            <div>
+                                <div class="text-sm font-bold text-white">MrBeast</div>
+                                <div class="text-[10px] text-gray-400">465M subs • YouTube</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="bg-[#0b1121] border border-white/5 rounded-xl p-5 relative overflow-hidden">
+                    <div class="absolute top-0 right-0 w-20 h-20 bg-green-500/10 blur-xl rounded-full"></div>
+                    <h4 class="text-white font-bold text-sm mb-2" data-i18n="wiz_s7_pot">Estimated collaboration potential</h4>
+                    <p class="text-xs text-gray-400 leading-relaxed">
+                        <span data-i18n="wiz_s7_pot_desc_1">Based on your audience size, you may be eligible for</span> 
+                        <span class="text-white font-bold">8-20</span> 
+                        <span data-i18n="wiz_s7_pot_desc_2">brand opportunities with an estimated earning range of</span> 
+                        <span class="text-green-400 font-bold text-lg align-middle ml-1">$30,000+</span>.
+                    </p>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <div id="privacy-modal" class="modal fixed inset-0 z-[100] flex items-center justify-center p-4"><div class="absolute inset-0 bg-black/80 backdrop-blur-sm" onclick="closeModal('privacy-modal')"></div><div class="modal-content relative bg-slate-900 border border-white/10 rounded-2xl max-w-2xl w-full max-h-[80vh] overflow-y-auto p-8 shadow-2xl"><button onclick="closeModal('privacy-modal')" class="absolute top-4 right-4 text-gray-400 hover:text-white"><i class="fas fa-times text-xl"></i></button><h2 class="text-2xl font-bold mb-4">Privacy Policy</h2><div class="text-gray-400 space-y-4 text-sm"><p>Standard Privacy Policy text...</p></div></div></div>
+    <div id="terms-modal" class="modal fixed inset-0 z-[100] flex items-center justify-center p-4"><div class="absolute inset-0 bg-black/80 backdrop-blur-sm" onclick="closeModal('terms-modal')"></div><div class="modal-content relative bg-slate-900 border border-white/10 rounded-2xl max-w-2xl w-full max-h-[80vh] overflow-y-auto p-8 shadow-2xl"><button onclick="closeModal('terms-modal')" class="absolute top-4 right-4 text-gray-400 hover:text-white"><i class="fas fa-times text-xl"></i></button><h2 class="text-2xl font-bold mb-4">Terms of Service</h2><div class="text-gray-400 space-y-4 text-sm"><p>Standard Terms text...</p></div></div></div>
+
+    <script src="https://unpkg.com/aos@2.3.1/dist/aos.js"></script>
+    <script>
+        AOS.init({ once: true, offset: 50, duration: 800 });
+
+        window.addEventListener('load', function() {
+            const preloader = document.getElementById('preloader');
+            preloader.style.opacity = '0';
+            setTimeout(() => { preloader.style.display = 'none'; }, 500);
+        });
+
+        // --- WIZARD LOGIC ---
+        let currentStep = 1;
+        const totalSteps = 7;
+
+        function openWizard() {
+            document.getElementById('wizard-modal').classList.add('active');
+            document.body.style.overflow = 'hidden';
+            resetWizard();
+        }
+
+        function closeWizard() {
+            document.getElementById('wizard-modal').classList.remove('active');
+            document.body.style.overflow = '';
+        }
+
+        function resetWizard() {
+            currentStep = 1;
+            showStep(1);
+            resetVerification();
+        }
+
+        function showStep(step) {
+            document.querySelectorAll('.step').forEach(el => el.classList.remove('active'));
+            document.getElementById(`step-${step}`).classList.add('active');
+            
+            for(let i=1; i<=6; i++) {
+                const bar = document.getElementById(`bar-${i}`);
+                if(bar) bar.style.width = (i < step) ? '100%' : '0%';
+                if(step === i && bar) bar.style.width = '50%';
+            }
+
+            if(step < 7) {
+                document.getElementById('step-indicator').innerText = `Step ${step} of 6`;
+                document.getElementById('progress-container').style.display = 'flex';
+            } else {
+                document.getElementById('step-indicator').innerText = '';
+                document.getElementById('progress-container').style.display = 'none';
+            }
+        }
+
+        function nextStep() {
+            if (currentStep < totalSteps) {
+                currentStep++;
+                showStep(currentStep);
+            }
+        }
+
+        function prevStep() {
+            if (currentStep > 1) {
+                currentStep--;
+                showStep(currentStep);
+            }
+        }
+
+        function fillInput(id, value) { document.getElementById(id).value = value; }
+
+        function startVerification() {
+            currentStep = 6;
+            showStep(6);
+            setTimeout(() => {
+                document.getElementById('loading-state').classList.add('hidden');
+                document.getElementById('found-channel').classList.remove('hidden');
+            }, 2000);
+        }
+
+        function resetVerification() {
+            document.getElementById('loading-state').classList.remove('hidden');
+            document.getElementById('found-channel').classList.add('hidden');
+            if(currentStep === 6) prevStep();
+        }
+
+        function showFinalDashboard() {
+            currentStep = 7;
+            showStep(7);
+        }
+
+        function openModal(id) { document.getElementById(id).classList.add('active'); document.body.style.overflow = 'hidden'; }
+        function closeModal(id) { document.getElementById(id).classList.remove('active'); document.body.style.overflow = ''; }
+
+        // --- FULL TRANSLATION LOGIC (ALL 7 LANGUAGES) ---
+        const translations = {
+            en: {
+                nav_about: "Who we are", nav_team: "Team", nav_partners: "Brands", btn_start: "Get Started",
+                hero_badge: "Agency-Level Execution", hero_title_1: "Your Ads.", hero_title_2: "Perfect Execution.",
+                hero_desc: "MakedBrand connects your vision with top-tier creators. You set the goal — we handle the execution end-to-end.",
+                btn_how: "How it works", partners_title: "Trusted by Global Brands",
+                stat_1: "Vetted Creators", stat_2: "Success Rate", stat_3: "Average ROI",
+                about_title: "Forget Manual Search", about_desc: "Stop writing hundreds of cold emails. MakedBrand automates the routine.",
+                step_1_title: "1. Send Brief", step_1_desc: "Upload materials and define your audience.",
+                step_2_title: "2. We Match", step_2_desc: "Our algorithm finds the best creators.",
+                step_3_title: "3. Launch", step_3_desc: "Campaign starts. Full transparency.",
+                reviews_title: "What Our Clients Say", rev_1: "MakedBrand saved us 20 hours a week on outreach. The quality of creators is outstanding.", rev_2: "The ROI we got from the first campaign paid for the service 10x over. Highly recommended.", rev_3: "Finally, an agency that understands crypto marketing nuances. Seamless execution.",
+                team_title: "Our Team", team_desc: "The people behind your marketing success.",
+                faq_title: "Frequently Asked Questions", faq_q1: "How fast can we launch a campaign?", faq_a1: "Typically, we can match you with creators and have the first content pieces live within 7-10 days after you submit the brief.",
+                faq_q2: "Do you handle payments to creators?", faq_a2: "Yes. You pay us a single invoice, and we handle all individual payouts, tax forms, and negotiations with creators.",
+                faq_q3: "What minimum budget is required?", faq_a3: "We work with budgets starting from $2,000/month. This ensures we can get you high-quality creators that drive actual results.",
+                ft_brands: "For Brands", ft_creators: "For Creators", ft_pricing: "Pricing",
+                // Wizard
+                wiz_s1_title: "What is your nickname?", wiz_examples: "Try:", wiz_btn_continue: "Continue",
+                wiz_s2_title: "Choose your platform", wiz_btn_back: "Go Back",
+                wiz_s3_title: "Your Channel Link", wiz_s3_desc: "Paste your @handle or full URL.", wiz_btn_find: "Find Channel",
+                wiz_s4_title: "Audience Size",
+                wiz_s5_title: "Contact Details", wiz_s5_desc: "Where should we send campaign offers?", wiz_btn_verify_c: "Verify & Continue",
+                wiz_analyzing: "Analyzing Channel Data...", wiz_s6_title: "Is this you?", wiz_btn_yes: "Yes, it's me", wiz_btn_no: "Not me",
+                wiz_s7_title: "Join MakedBrand Creator Network", wiz_s7_subtitle: "Work with top brands and monetize your influence",
+                wiz_s7_status: "Profile review completed", wiz_s7_desc: "One final step - verify ownership so brands can find you.",
+                wiz_s7_ver_title: "CHANNEL VERIFICATION", wiz_btn_verify_final: "VERIFY CHANNEL OWNERSHIP", wiz_s7_ver_note: "Completed via Google • Takes < 1 min",
+                wiz_s7_acc: "Accounts", wiz_s7_pot: "Estimated collaboration potential", wiz_s7_pot_desc_1: "Based on your audience size, you may be eligible for", wiz_s7_pot_desc_2: "brand opportunities with an estimated earning range of"
+            },
+            ru: {
+                nav_about: "О нас", nav_team: "Команда", nav_partners: "Бренды", btn_start: "Начать",
+                hero_badge: "Агентский Уровень", hero_title_1: "Ваша Реклама.", hero_title_2: "Идеальное Исполнение.",
+                hero_desc: "MakedBrand соединяет ваше видение с топ-криейторами. Вы ставите цель — мы берем исполнение на себя.",
+                btn_how: "Как это работает", partners_title: "Нам доверяют бренды",
+                stat_1: "Проверенных Авторов", stat_2: "Успешных Кампаний", stat_3: "Средний ROI",
+                about_title: "Забудьте ручной поиск", about_desc: "Хватит писать сотни холодных писем. MakedBrand автоматизирует рутину.",
+                step_1_title: "1. Бриф", step_1_desc: "Загрузите материалы и опишите аудиторию.",
+                step_2_title: "2. Подбор", step_2_desc: "Наш алгоритм находит лучших авторов.",
+                step_3_title: "3. Запуск", step_3_desc: "Кампания стартует. Полная прозрачность.",
+                reviews_title: "Что говорят клиенты", rev_1: "MakedBrand сэкономил нам 20 часов в неделю. Качество блогеров на высоте.", rev_2: "ROI от первой кампании окупил сервис в 10 раз. Рекомендую.", rev_3: "Наконец-то агентство, которое понимает крипто-маркетинг. Идеальная работа.",
+                team_title: "Наша Команда", team_desc: "Люди, стоящие за вашим успехом.",
+                faq_title: "Частые Вопросы", faq_q1: "Как быстро запуск?", faq_a1: "Обычно мы подбираем авторов и запускаем контент за 7-10 дней после получения брифа.",
+                faq_q2: "Вы платите авторам?", faq_a2: "Да. Вы оплачиваете нам один счет, а мы занимаемся выплатами, налогами и переговорами.",
+                faq_q3: "Какой минимальный бюджет?", faq_a3: "Мы работаем с бюджетами от $2,000/мес. Это гарантирует качество.",
+                ft_brands: "Брендам", ft_creators: "Криейторам", ft_pricing: "Цены",
+                // Wizard RU
+                wiz_s1_title: "Какой у вас никнейм?", wiz_examples: "Например:", wiz_btn_continue: "Далее",
+                wiz_s2_title: "Выберите платформу", wiz_btn_back: "Назад",
+                wiz_s3_title: "Ссылка на канал", wiz_s3_desc: "Вставьте @handle или ссылку.", wiz_btn_find: "Найти канал",
+                wiz_s4_title: "Размер аудитории",
+                wiz_s5_title: "Контактные данные", wiz_s5_desc: "Куда отправлять предложения?", wiz_btn_verify_c: "Проверить и продолжить",
+                wiz_analyzing: "Анализ данных канала...", wiz_s6_title: "Это вы?", wiz_btn_yes: "Да, это я", wiz_btn_no: "Не я",
+                wiz_s7_title: "Вступайте в сеть MakedBrand", wiz_s7_subtitle: "Работайте с топ брендами и монетизируйте влияние",
+                wiz_s7_status: "Профиль заполнен", wiz_s7_desc: "Последний шаг - подтвердите владение каналом.",
+                wiz_s7_ver_title: "ВЕРИФИКАЦИЯ КАНАЛА", wiz_btn_verify_final: "ПОДТВЕРДИТЬ ВЛАДЕНИЕ КАНАЛОМ", wiz_s7_ver_note: "Через Google • Займет < 1 мин",
+                wiz_s7_acc: "Аккаунты", wiz_s7_pot: "Потенциал сотрудничества", wiz_s7_pot_desc_1: "Исходя из вашей аудитории, вам доступно", wiz_s7_pot_desc_2: "предложений с примерным доходом"
+            },
+            es: { nav_about: "Quiénes somos", nav_team: "Equipo", nav_partners: "Marcas", btn_start: "Empezar", hero_badge: "Agencia", hero_title_1: "Tus Anuncios.", hero_title_2: "Ejecución Perfecta.", hero_desc: "Conectamos tu visión.", btn_how: "Cómo funciona", partners_title: "Marcas Globales", stat_1: "Creadores", stat_2: "Éxito", stat_3: "ROI Medio", about_title: "Olvida búsqueda manual", about_desc: "Automatiza la rutina.", step_1_title: "1. Enviar Brief", step_1_desc: "Define audiencia.", step_2_title: "2. Buscamos", step_2_desc: "Mejores creadores.", step_3_title: "3. Lanzar", step_3_desc: "Transparencia total.", reviews_title: "Clientes", rev_1: "Ahorramos 20 horas.", rev_2: "ROI increíble.", rev_3: "Saben de crypto.", team_title: "Equipo", team_desc: "Gente de éxito.", faq_title: "Preguntas", faq_q1: "¿Rapidez?", faq_a1: "7-10 días.", faq_q2: "¿Pagos?", faq_a2: "Sí.", faq_q3: "¿Presupuesto?", faq_a3: "$2k/mes.", ft_brands: "Marcas", ft_creators: "Creadores", ft_pricing: "Precios", wiz_s1_title: "¿Cuál es tu apodo?", wiz_examples: "Prueba:", wiz_btn_continue: "Continuar", wiz_s2_title: "Elige plataforma", wiz_btn_back: "Volver", wiz_s3_title: "Enlace del canal", wiz_s3_desc: "Pega tu @handle.", wiz_btn_find: "Buscar canal", wiz_s4_title: "Audiencia", wiz_s5_title: "Contacto", wiz_s5_desc: "¿Email?", wiz_btn_verify_c: "Verificar", wiz_analyzing: "Analizando...", wiz_s6_title: "¿Eres tú?", wiz_btn_yes: "Sí, soy yo", wiz_btn_no: "No", wiz_s7_title: "Únete a MakedBrand", wiz_s7_subtitle: "Monetiza tu influencia", wiz_s7_status: "Perfil completado", wiz_s7_desc: "Verifica propiedad.", wiz_s7_ver_title: "VERIFICACIÓN", wiz_btn_verify_final: "VERIFICAR PROPIEDAD", wiz_s7_ver_note: "Vía Google • < 1 min", wiz_s7_acc: "Cuentas", wiz_s7_pot: "Potencial estimado", wiz_s7_pot_desc_1: "Basado en tu audiencia, tienes", wiz_s7_pot_desc_2: "oportunidades por valor de" },
+            fr: { nav_about: "Qui sommes-nous", nav_team: "Équipe", nav_partners: "Marques", btn_start: "Commencer", hero_badge: "Agence", hero_title_1: "Vos Pubs.", hero_title_2: "Parfaite.", hero_desc: "Connectez votre vision.", btn_how: "Fonctionnement", partners_title: "Marques Globales", stat_1: "Créateurs", stat_2: "Succès", stat_3: "ROI Moyen", about_title: "Oubliez manuel", about_desc: "Automatisez.", step_1_title: "1. Brief", step_1_desc: "Définir audience.", step_2_title: "2. Match", step_2_desc: "Meilleurs créateurs.", step_3_title: "3. Lancer", step_3_desc: "Transparence.", reviews_title: "Avis Clients", rev_1: "Gain de temps.", rev_2: "Super ROI.", rev_3: "Expert crypto.", team_title: "Équipe", team_desc: "Succès.", faq_title: "FAQ", faq_q1: "Vitesse ?", faq_a1: "7-10 jours.", faq_q2: "Paiements ?", faq_a2: "Oui.", faq_q3: "Budget ?", faq_a3: "2k$.", ft_brands: "Marques", ft_creators: "Créateurs", ft_pricing: "Tarifs", wiz_s1_title: "Quel est ton pseudo ?", wiz_examples: "Ex :", wiz_btn_continue: "Continuer", wiz_s2_title: "Plateforme", wiz_btn_back: "Retour", wiz_s3_title: "Lien chaîne", wiz_s3_desc: "Collez votre @handle.", wiz_btn_find: "Trouver", wiz_s4_title: "Audience", wiz_s5_title: "Contact", wiz_s5_desc: "Email ?", wiz_btn_verify_c: "Vérifier", wiz_analyzing: "Analyse...", wiz_s6_title: "C'est vous ?", wiz_btn_yes: "Oui", wiz_btn_no: "Non", wiz_s7_title: "Rejoignez MakedBrand", wiz_s7_subtitle: "Monétisez.", wiz_s7_status: "Profil complet", wiz_s7_desc: "Vérifiez propriété.", wiz_s7_ver_title: "VÉRIFICATION", wiz_btn_verify_final: "VÉRIFIER PROPRIÉTÉ", wiz_s7_ver_note: "Via Google • < 1 min", wiz_s7_acc: "Comptes", wiz_s7_pot: "Potentiel", wiz_s7_pot_desc_1: "Selon votre audience, vous avez", wiz_s7_pot_desc_2: "opportunités valant" },
+            de: { nav_about: "Über uns", nav_team: "Team", nav_partners: "Marken", btn_start: "Starten", hero_badge: "Agentur", hero_title_1: "Werbung.", hero_title_2: "Perfekt.", hero_desc: "Verbindet Vision.", btn_how: "Funktion", partners_title: "Globale Marken", stat_1: "Creator", stat_2: "Erfolg", stat_3: "Ø ROI", about_title: "Keine manuelle Suche", about_desc: "Automatisiere.", step_1_title: "1. Briefing", step_1_desc: "Zielgruppe.", step_2_title: "2. Match", step_2_desc: "Beste Creator.", step_3_title: "3. Start", step_3_desc: "Transparenz.", reviews_title: "Kunden", rev_1: "Zeit gespart.", rev_2: "Super ROI.", rev_3: "Crypto Experten.", team_title: "Team", team_desc: "Erfolg.", faq_title: "FAQ", faq_q1: "Dauer?", faq_a1: "7-10 Tage.", faq_q2: "Zahlungen?", faq_a2: "Ja.", faq_q3: "Budget?", faq_a3: "2k$.", ft_brands: "Marken", ft_creators: "Creator", ft_pricing: "Preise", wiz_s1_title: "Dein Nickname?", wiz_examples: "Bsp:", wiz_btn_continue: "Weiter", wiz_s2_title: "Plattform", wiz_btn_back: "Zurück", wiz_s3_title: "Kanal-Link", wiz_s3_desc: "Füge @handle ein.", wiz_btn_find: "Suchen", wiz_s4_title: "Zuschauer", wiz_s5_title: "Kontakt", wiz_s5_desc: "Email?", wiz_btn_verify_c: "Prüfen", wiz_analyzing: "Analysiere...", wiz_s6_title: "Bist du das?", wiz_btn_yes: "Ja", wiz_btn_no: "Nein", wiz_s7_title: "Tritt bei", wiz_s7_subtitle: "Monetarisieren.", wiz_s7_status: "Profil fertig", wiz_s7_desc: "Verifiziere Kanal.", wiz_s7_ver_title: "VERIFIZIERUNG", wiz_btn_verify_final: "KANAL VERIFIZIEREN", wiz_s7_ver_note: "Via Google • < 1 Min", wiz_s7_acc: "Konten", wiz_s7_pot: "Potenzial", wiz_s7_pot_desc_1: "Basierend auf Audience", wiz_s7_pot_desc_2: "Chancen im Wert von" },
+            pt: { nav_about: "Quem somos", nav_team: "Equipe", nav_partners: "Marcas", btn_start: "Começar", hero_badge: "Agência", hero_title_1: "Anúncios.", hero_title_2: "Perfeita.", hero_desc: "Sua visão.", btn_how: "Como funciona", partners_title: "Marcas Globais", stat_1: "Criadores", stat_2: "Sucesso", stat_3: "ROI Médio", about_title: "Esqueça manual", about_desc: "Automatize.", step_1_title: "1. Briefing", step_1_desc: "Audiência.", step_2_title: "2. Match", step_2_desc: "Melhores criadores.", step_3_title: "3. Lançar", step_3_desc: "Transparência.", reviews_title: "Clientes", rev_1: "Tempo salvo.", rev_2: "ROI incrível.", rev_3: "Expert crypto.", team_title: "Equipe", team_desc: "Sucesso.", faq_title: "FAQ", faq_q1: "Rápido?", faq_a1: "7-10 dias.", faq_q2: "Pagamentos?", faq_a2: "Sim.", faq_q3: "Orçamento?", faq_a3: "2k$.", ft_brands: "Marcas", ft_creators: "Criadores", ft_pricing: "Preços", wiz_s1_title: "Seu apelido?", wiz_examples: "Ex:", wiz_btn_continue: "Continuar", wiz_s2_title: "Plataforma", wiz_btn_back: "Voltar", wiz_s3_title: "Link do canal", wiz_s3_desc: "Cole seu @handle.", wiz_btn_find: "Buscar", wiz_s4_title: "Audiência", wiz_s5_title: "Contato", wiz_s5_desc: "Email?", wiz_btn_verify_c: "Verificar", wiz_analyzing: "Analisando...", wiz_s6_title: "É você?", wiz_btn_yes: "Sim", wiz_btn_no: "Não", wiz_s7_title: "Junte-se a nós", wiz_s7_subtitle: "Monetize.", wiz_s7_status: "Perfil completo", wiz_s7_desc: "Verifique propriedade.", wiz_s7_ver_title: "VERIFICAÇÃO", wiz_btn_verify_final: "VERIFICAR PROPRIEDADE", wiz_s7_ver_note: "Via Google • < 1 min", wiz_s7_acc: "Contas", wiz_s7_pot: "Potencial", wiz_s7_pot_desc_1: "Baseado na audiência", wiz_s7_pot_desc_2: "oportunidades valendo" },
+            hi: { nav_about: "हम कौन हैं", nav_team: "टीम", nav_partners: "ब्रांड्स", btn_start: "शुरू करें", hero_badge: "एजेंसी", hero_title_1: "विज्ञापन", hero_title_2: "उत्तम", hero_desc: "दृष्टि जोड़ें", btn_how: "कैसे काम करता है", partners_title: "विश्वसनीय", stat_1: "रचनाकार", stat_2: "सफलता", stat_3: "ROI", about_title: "स्वचालित", about_desc: "कोल्ड ईमेल बंद", step_1_title: "1. विवरण", step_1_desc: "सामग्री", step_2_title: "2. मिलान", step_2_desc: "रचनाकार", step_3_title: "3. लॉन्च", step_3_desc: "पारदर्शिता", reviews_title: "समीक्षा", rev_1: "समय बचत", rev_2: "ROI", rev_3: "विशेषज्ञ", team_title: "टीम", team_desc: "सफलता", faq_title: "प्रश्न", faq_q1: "तेजी?", faq_a1: "7-10 दिन", faq_q2: "भुगतान?", faq_a2: "हाँ", faq_q3: "बजट?", faq_a3: "2k", ft_brands: "ब्रांड्स", ft_creators: "रचनाकार", ft_pricing: "मूल्य", wiz_s1_title: "निकनेम?", wiz_examples: "उदाहरण:", wiz_btn_continue: "आगे", wiz_s2_title: "प्लेटफ़ॉर्म", wiz_btn_back: "पीछे", wiz_s3_title: "लिंक", wiz_s3_desc: "@handle", wiz_btn_find: "खोजें", wiz_s4_title: "दर्शक", wiz_s5_title: "संपर्क", wiz_s5_desc: "ईमेल?", wiz_btn_verify_c: "सत्यापित करें", wiz_analyzing: "विश्लेषण...", wiz_s6_title: "क्या यह आप हैं?", wiz_btn_yes: "हाँ", wiz_btn_no: "नहीं", wiz_s7_title: "जुड़ें", wiz_s7_subtitle: "कमाई करें", wiz_s7_status: "पूर्ण", wiz_s7_desc: "स्वामित्व सत्यापित करें", wiz_s7_ver_title: "सत्यापन", wiz_btn_verify_final: "सत्यापित करें", wiz_s7_ver_note: "Google द्वारा", wiz_s7_acc: "खाते", wiz_s7_pot: "संभावना", wiz_s7_pot_desc_1: "दर्शकों के आधार पर", wiz_s7_pot_desc_2: "अवसर" }
+        };
+
+        function changeLang(lang, flagCode) {
+            const elements = document.querySelectorAll('[data-i18n]');
+            elements.forEach(el => {
+                const key = el.getAttribute('data-i18n');
+                const text = (translations[lang] && translations[lang][key]) ? translations[lang][key] : translations['en'][key];
+                if (text) el.innerText = text;
+            });
+            document.getElementById('current-lang-label').innerText = lang.toUpperCase();
+            document.getElementById('current-flag').src = `https://flagcdn.com/w40/${flagCode}.png`;
+        }
+    </script>
+</body>
+</html>
