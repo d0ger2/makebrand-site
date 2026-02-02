@@ -112,7 +112,7 @@
             transform: scale(1);
         }
 
-        /* Wizard Specific Styles */
+        /* Wizard Styles */
         .step { display: none; }
         .step.active { display: block; animation: slideUp 0.4s ease forwards; }
         @keyframes slideUp { 
@@ -613,7 +613,12 @@
         function resetWizard() {
             currentStep = 1;
             showStep(1);
-            resetVerification();
+            // Manually reset UI states without jumping to step 3
+            document.getElementById('loading-state').classList.remove('hidden');
+            document.getElementById('found-channel').classList.add('hidden');
+            document.getElementById('error-state').classList.add('hidden');
+            document.getElementById('input-handle').value = '';
+            document.getElementById('input-nickname').value = '';
         }
 
         function showStep(step) {
@@ -710,7 +715,7 @@
         }
 
         function resetVerification() {
-            // Return to Step 3 (Link Input)
+            // Return to Step 3 (Link Input) for retry
             currentStep = 3;
             showStep(3);
             document.getElementById('error-state').classList.add('hidden');
