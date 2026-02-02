@@ -81,7 +81,7 @@
             100% { transform: translateX(-50%); }
         }
 
-        /* Dropdown */
+        /* Dropdown & Modals */
         .lang-dropdown {
             opacity: 0;
             visibility: hidden;
@@ -112,7 +112,7 @@
             transform: scale(1);
         }
 
-        /* Wizard Styles */
+        /* Wizard Specific Styles */
         .step { display: none; }
         .step.active { display: block; animation: slideUp 0.4s ease forwards; }
         @keyframes slideUp { 
@@ -505,11 +505,20 @@
                     <p class="text-gray-500 text-sm mt-2">Connecting to API</p>
                 </div>
                 
+                <div id="error-state" class="hidden text-center py-10">
+                    <div class="inline-flex items-center justify-center w-16 h-16 rounded-full bg-red-500/10 text-red-500 mb-6 border border-red-500/20">
+                        <i class="fas fa-exclamation-triangle text-3xl"></i>
+                    </div>
+                    <h2 class="text-2xl font-bold text-white mb-2" data-i18n="wiz_err_title">Channel Not Found</h2>
+                    <p class="text-gray-400 text-sm mb-8 max-w-sm mx-auto" data-i18n="wiz_err_desc">We couldn't verify this channel. Please check the spelling or make sure the channel is public.</p>
+                    <button onclick="resetVerification()" class="bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-3 px-8 rounded-xl transition" data-i18n="wiz_btn_retry">Try Again</button>
+                </div>
+
                 <div id="found-channel" class="hidden animate-fade-in">
                     <h2 class="text-3xl font-bold text-white mb-8 text-center" data-i18n="wiz_s6_title">Is this you?</h2>
                     
                     <div class="bg-black/40 border border-white/10 rounded-2xl p-6 flex items-center mb-8 hover:border-indigo-500/50 transition">
-                        <img src="https://yt3.googleusercontent.com/ytc/AIdro_nKk8qf8f5f5q5q5q5q5q5q5q5q5q5q5q5q5q=s176-c-k-c0x00ffffff-no-rj" class="w-20 h-20 rounded-full mr-5 border-4 border-slate-800 shadow-xl" alt="Avatar">
+                        <img src="https://yt3.googleusercontent.com/ytc/AIdro_WZ7t0D0GfR8_K_2s7-2Wq7q7X_1_J-1_J-1_J-1=s176-c-k-c0x00ffffff-no-rj" class="w-20 h-20 rounded-full mr-5 border-4 border-slate-800 shadow-xl" alt="Avatar">
                         <div>
                             <h3 class="text-2xl font-bold text-white">MrBeast</h3>
                             <div class="flex items-center mt-1 space-x-3 text-sm">
@@ -549,7 +558,7 @@
                     <div class="bg-[#0b1121] border border-white/5 rounded-xl p-5">
                         <p class="text-[10px] text-white font-bold mb-3 uppercase tracking-widest" data-i18n="wiz_s7_acc">Accounts</p>
                         <div class="flex items-center bg-slate-900/50 border border-white/5 p-3 rounded-lg">
-                            <img src="https://yt3.googleusercontent.com/ytc/AIdro_nKk8qf8f5f5q5q5q5q5q5q5q5q5q5q5q5q5q=s176-c-k-c0x00ffffff-no-rj" class="w-10 h-10 rounded-full mr-3 border border-slate-700">
+                            <img src="https://yt3.googleusercontent.com/ytc/AIdro_WZ7t0D0GfR8_K_2s7-2Wq7q7X_1_J-1_J-1_J-1=s176-c-k-c0x00ffffff-no-rj" class="w-10 h-10 rounded-full mr-3 border border-slate-700">
                             <div>
                                 <div class="text-sm font-bold text-white">MrBeast</div>
                                 <div class="text-[10px] text-gray-400">465M subs • YouTube</div>
@@ -642,19 +651,70 @@
 
         function fillInput(id, value) { document.getElementById(id).value = value; }
 
-        function startVerification() {
+        // --- API & VERIFICATION LOGIC ---
+
+        async function startVerification() {
             currentStep = 6;
             showStep(6);
-            setTimeout(() => {
-                document.getElementById('loading-state').classList.add('hidden');
-                document.getElementById('found-channel').classList.remove('hidden');
-            }, 2000);
+            document.getElementById('loading-state').classList.remove('hidden');
+            document.getElementById('found-channel').classList.add('hidden');
+            document.getElementById('error-state').classList.add('hidden');
+
+            const handleInput = document.getElementById('input-handle').value;
+            const nickInput = document.getElementById('input-nickname').value;
+            const targetQuery = handleInput.trim() ? handleInput : nickInput;
+
+            try {
+                const response = await fetch(`/api/check-channel?handle=${encodeURIComponent(targetQuery)}`);
+                const contentType = response.headers.get("content-type");
+                
+                if (!contentType || !contentType.includes("application/json")) {
+                    throw new Error("Server Error");
+                }
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    updateUI(data.title, data.avatar, data.subs, data.revenue);
+                    document.getElementById('loading-state').classList.add('hidden');
+                    document.getElementById('found-channel').classList.remove('hidden');
+                } else {
+                    showErrorState();
+                }
+            } catch (error) {
+                showErrorState();
+            }
+        }
+
+        function showErrorState() {
+            document.getElementById('loading-state').classList.add('hidden');
+            document.getElementById('found-channel').classList.add('hidden');
+            document.getElementById('error-state').classList.remove('hidden');
+        }
+
+        function updateUI(title, avatar, subs, revenue) {
+            const resBox = document.getElementById('found-channel');
+            const img = resBox.querySelector('img');
+            const h3 = resBox.querySelector('h3');
+            const subText = resBox.querySelector('.text-gray-400');
+
+            img.src = avatar;
+            h3.innerText = title;
+            subText.innerText = `• ${subs} Subscribers`;
+
+            const dashStep = document.getElementById('step-7');
+            dashStep.querySelector('.bg-[#0b1121] .flex img').src = avatar;
+            dashStep.querySelector('.bg-[#0b1121] .flex .text-sm').innerText = title;
+            dashStep.querySelector('.bg-[#0b1121] .flex .text-\\[10px\\]').innerText = `${subs} subs • YouTube`;
+            dashStep.querySelector('.text-green-400').innerText = revenue;
         }
 
         function resetVerification() {
+            // Return to Step 3 (Link Input)
+            currentStep = 3;
+            showStep(3);
+            document.getElementById('error-state').classList.add('hidden');
             document.getElementById('loading-state').classList.remove('hidden');
-            document.getElementById('found-channel').classList.add('hidden');
-            if(currentStep === 6) prevStep();
         }
 
         function showFinalDashboard() {
@@ -690,6 +750,7 @@
                 wiz_s4_title: "Audience Size",
                 wiz_s5_title: "Contact Details", wiz_s5_desc: "Where should we send campaign offers?", wiz_btn_verify_c: "Verify & Continue",
                 wiz_analyzing: "Analyzing Channel Data...", wiz_s6_title: "Is this you?", wiz_btn_yes: "Yes, it's me", wiz_btn_no: "Not me",
+                wiz_err_title: "Channel Not Found", wiz_err_desc: "We couldn't verify this channel. Please check the spelling or make sure the channel is public.", wiz_btn_retry: "Try Again",
                 wiz_s7_title: "Join MakedBrand Creator Network", wiz_s7_subtitle: "Work with top brands and monetize your influence",
                 wiz_s7_status: "Profile review completed", wiz_s7_desc: "One final step - verify ownership so brands can find you.",
                 wiz_s7_ver_title: "CHANNEL VERIFICATION", wiz_btn_verify_final: "VERIFY CHANNEL OWNERSHIP", wiz_s7_ver_note: "Completed via Google • Takes < 1 min",
@@ -718,16 +779,17 @@
                 wiz_s4_title: "Размер аудитории",
                 wiz_s5_title: "Контактные данные", wiz_s5_desc: "Куда отправлять предложения?", wiz_btn_verify_c: "Проверить и продолжить",
                 wiz_analyzing: "Анализ данных канала...", wiz_s6_title: "Это вы?", wiz_btn_yes: "Да, это я", wiz_btn_no: "Не я",
+                wiz_err_title: "Канал не найден", wiz_err_desc: "Мы не смогли найти этот канал. Проверьте ссылку или убедитесь, что канал открыт.", wiz_btn_retry: "Попробовать снова",
                 wiz_s7_title: "Вступайте в сеть MakedBrand", wiz_s7_subtitle: "Работайте с топ брендами и монетизируйте влияние",
                 wiz_s7_status: "Профиль заполнен", wiz_s7_desc: "Последний шаг - подтвердите владение каналом.",
                 wiz_s7_ver_title: "ВЕРИФИКАЦИЯ КАНАЛА", wiz_btn_verify_final: "ПОДТВЕРДИТЬ ВЛАДЕНИЕ КАНАЛОМ", wiz_s7_ver_note: "Через Google • Займет < 1 мин",
                 wiz_s7_acc: "Аккаунты", wiz_s7_pot: "Потенциал сотрудничества", wiz_s7_pot_desc_1: "Исходя из вашей аудитории, вам доступно", wiz_s7_pot_desc_2: "предложений с примерным доходом"
             },
-            es: { nav_about: "Quiénes somos", nav_team: "Equipo", nav_partners: "Marcas", btn_start: "Empezar", hero_badge: "Agencia", hero_title_1: "Tus Anuncios.", hero_title_2: "Ejecución Perfecta.", hero_desc: "Conectamos tu visión.", btn_how: "Cómo funciona", partners_title: "Marcas Globales", stat_1: "Creadores", stat_2: "Éxito", stat_3: "ROI Medio", about_title: "Olvida búsqueda manual", about_desc: "Automatiza la rutina.", step_1_title: "1. Enviar Brief", step_1_desc: "Define audiencia.", step_2_title: "2. Buscamos", step_2_desc: "Mejores creadores.", step_3_title: "3. Lanzar", step_3_desc: "Transparencia total.", reviews_title: "Clientes", rev_1: "Ahorramos 20 horas.", rev_2: "ROI increíble.", rev_3: "Saben de crypto.", team_title: "Equipo", team_desc: "Gente de éxito.", faq_title: "Preguntas", faq_q1: "¿Rapidez?", faq_a1: "7-10 días.", faq_q2: "¿Pagos?", faq_a2: "Sí.", faq_q3: "¿Presupuesto?", faq_a3: "$2k/mes.", ft_brands: "Marcas", ft_creators: "Creadores", ft_pricing: "Precios", wiz_s1_title: "¿Cuál es tu apodo?", wiz_examples: "Prueba:", wiz_btn_continue: "Continuar", wiz_s2_title: "Elige plataforma", wiz_btn_back: "Volver", wiz_s3_title: "Enlace del canal", wiz_s3_desc: "Pega tu @handle.", wiz_btn_find: "Buscar canal", wiz_s4_title: "Audiencia", wiz_s5_title: "Contacto", wiz_s5_desc: "¿Email?", wiz_btn_verify_c: "Verificar", wiz_analyzing: "Analizando...", wiz_s6_title: "¿Eres tú?", wiz_btn_yes: "Sí, soy yo", wiz_btn_no: "No", wiz_s7_title: "Únete a MakedBrand", wiz_s7_subtitle: "Monetiza tu influencia", wiz_s7_status: "Perfil completado", wiz_s7_desc: "Verifica propiedad.", wiz_s7_ver_title: "VERIFICACIÓN", wiz_btn_verify_final: "VERIFICAR PROPIEDAD", wiz_s7_ver_note: "Vía Google • < 1 min", wiz_s7_acc: "Cuentas", wiz_s7_pot: "Potencial estimado", wiz_s7_pot_desc_1: "Basado en tu audiencia, tienes", wiz_s7_pot_desc_2: "oportunidades por valor de" },
-            fr: { nav_about: "Qui sommes-nous", nav_team: "Équipe", nav_partners: "Marques", btn_start: "Commencer", hero_badge: "Agence", hero_title_1: "Vos Pubs.", hero_title_2: "Parfaite.", hero_desc: "Connectez votre vision.", btn_how: "Fonctionnement", partners_title: "Marques Globales", stat_1: "Créateurs", stat_2: "Succès", stat_3: "ROI Moyen", about_title: "Oubliez manuel", about_desc: "Automatisez.", step_1_title: "1. Brief", step_1_desc: "Définir audience.", step_2_title: "2. Match", step_2_desc: "Meilleurs créateurs.", step_3_title: "3. Lancer", step_3_desc: "Transparence.", reviews_title: "Avis Clients", rev_1: "Gain de temps.", rev_2: "Super ROI.", rev_3: "Expert crypto.", team_title: "Équipe", team_desc: "Succès.", faq_title: "FAQ", faq_q1: "Vitesse ?", faq_a1: "7-10 jours.", faq_q2: "Paiements ?", faq_a2: "Oui.", faq_q3: "Budget ?", faq_a3: "2k$.", ft_brands: "Marques", ft_creators: "Créateurs", ft_pricing: "Tarifs", wiz_s1_title: "Quel est ton pseudo ?", wiz_examples: "Ex :", wiz_btn_continue: "Continuer", wiz_s2_title: "Plateforme", wiz_btn_back: "Retour", wiz_s3_title: "Lien chaîne", wiz_s3_desc: "Collez votre @handle.", wiz_btn_find: "Trouver", wiz_s4_title: "Audience", wiz_s5_title: "Contact", wiz_s5_desc: "Email ?", wiz_btn_verify_c: "Vérifier", wiz_analyzing: "Analyse...", wiz_s6_title: "C'est vous ?", wiz_btn_yes: "Oui", wiz_btn_no: "Non", wiz_s7_title: "Rejoignez MakedBrand", wiz_s7_subtitle: "Monétisez.", wiz_s7_status: "Profil complet", wiz_s7_desc: "Vérifiez propriété.", wiz_s7_ver_title: "VÉRIFICATION", wiz_btn_verify_final: "VÉRIFIER PROPRIÉTÉ", wiz_s7_ver_note: "Via Google • < 1 min", wiz_s7_acc: "Comptes", wiz_s7_pot: "Potentiel", wiz_s7_pot_desc_1: "Selon votre audience, vous avez", wiz_s7_pot_desc_2: "opportunités valant" },
-            de: { nav_about: "Über uns", nav_team: "Team", nav_partners: "Marken", btn_start: "Starten", hero_badge: "Agentur", hero_title_1: "Werbung.", hero_title_2: "Perfekt.", hero_desc: "Verbindet Vision.", btn_how: "Funktion", partners_title: "Globale Marken", stat_1: "Creator", stat_2: "Erfolg", stat_3: "Ø ROI", about_title: "Keine manuelle Suche", about_desc: "Automatisiere.", step_1_title: "1. Briefing", step_1_desc: "Zielgruppe.", step_2_title: "2. Match", step_2_desc: "Beste Creator.", step_3_title: "3. Start", step_3_desc: "Transparenz.", reviews_title: "Kunden", rev_1: "Zeit gespart.", rev_2: "Super ROI.", rev_3: "Crypto Experten.", team_title: "Team", team_desc: "Erfolg.", faq_title: "FAQ", faq_q1: "Dauer?", faq_a1: "7-10 Tage.", faq_q2: "Zahlungen?", faq_a2: "Ja.", faq_q3: "Budget?", faq_a3: "2k$.", ft_brands: "Marken", ft_creators: "Creator", ft_pricing: "Preise", wiz_s1_title: "Dein Nickname?", wiz_examples: "Bsp:", wiz_btn_continue: "Weiter", wiz_s2_title: "Plattform", wiz_btn_back: "Zurück", wiz_s3_title: "Kanal-Link", wiz_s3_desc: "Füge @handle ein.", wiz_btn_find: "Suchen", wiz_s4_title: "Zuschauer", wiz_s5_title: "Kontakt", wiz_s5_desc: "Email?", wiz_btn_verify_c: "Prüfen", wiz_analyzing: "Analysiere...", wiz_s6_title: "Bist du das?", wiz_btn_yes: "Ja", wiz_btn_no: "Nein", wiz_s7_title: "Tritt bei", wiz_s7_subtitle: "Monetarisieren.", wiz_s7_status: "Profil fertig", wiz_s7_desc: "Verifiziere Kanal.", wiz_s7_ver_title: "VERIFIZIERUNG", wiz_btn_verify_final: "KANAL VERIFIZIEREN", wiz_s7_ver_note: "Via Google • < 1 Min", wiz_s7_acc: "Konten", wiz_s7_pot: "Potenzial", wiz_s7_pot_desc_1: "Basierend auf Audience", wiz_s7_pot_desc_2: "Chancen im Wert von" },
-            pt: { nav_about: "Quem somos", nav_team: "Equipe", nav_partners: "Marcas", btn_start: "Começar", hero_badge: "Agência", hero_title_1: "Anúncios.", hero_title_2: "Perfeita.", hero_desc: "Sua visão.", btn_how: "Como funciona", partners_title: "Marcas Globais", stat_1: "Criadores", stat_2: "Sucesso", stat_3: "ROI Médio", about_title: "Esqueça manual", about_desc: "Automatize.", step_1_title: "1. Briefing", step_1_desc: "Audiência.", step_2_title: "2. Match", step_2_desc: "Melhores criadores.", step_3_title: "3. Lançar", step_3_desc: "Transparência.", reviews_title: "Clientes", rev_1: "Tempo salvo.", rev_2: "ROI incrível.", rev_3: "Expert crypto.", team_title: "Equipe", team_desc: "Sucesso.", faq_title: "FAQ", faq_q1: "Rápido?", faq_a1: "7-10 dias.", faq_q2: "Pagamentos?", faq_a2: "Sim.", faq_q3: "Orçamento?", faq_a3: "2k$.", ft_brands: "Marcas", ft_creators: "Criadores", ft_pricing: "Preços", wiz_s1_title: "Seu apelido?", wiz_examples: "Ex:", wiz_btn_continue: "Continuar", wiz_s2_title: "Plataforma", wiz_btn_back: "Voltar", wiz_s3_title: "Link do canal", wiz_s3_desc: "Cole seu @handle.", wiz_btn_find: "Buscar", wiz_s4_title: "Audiência", wiz_s5_title: "Contato", wiz_s5_desc: "Email?", wiz_btn_verify_c: "Verificar", wiz_analyzing: "Analisando...", wiz_s6_title: "É você?", wiz_btn_yes: "Sim", wiz_btn_no: "Não", wiz_s7_title: "Junte-se a nós", wiz_s7_subtitle: "Monetize.", wiz_s7_status: "Perfil completo", wiz_s7_desc: "Verifique propriedade.", wiz_s7_ver_title: "VERIFICAÇÃO", wiz_btn_verify_final: "VERIFICAR PROPRIEDADE", wiz_s7_ver_note: "Via Google • < 1 min", wiz_s7_acc: "Contas", wiz_s7_pot: "Potencial", wiz_s7_pot_desc_1: "Baseado na audiência", wiz_s7_pot_desc_2: "oportunidades valendo" },
-            hi: { nav_about: "हम कौन हैं", nav_team: "टीम", nav_partners: "ब्रांड्स", btn_start: "शुरू करें", hero_badge: "एजेंसी", hero_title_1: "विज्ञापन", hero_title_2: "उत्तम", hero_desc: "दृष्टि जोड़ें", btn_how: "कैसे काम करता है", partners_title: "विश्वसनीय", stat_1: "रचनाकार", stat_2: "सफलता", stat_3: "ROI", about_title: "स्वचालित", about_desc: "कोल्ड ईमेल बंद", step_1_title: "1. विवरण", step_1_desc: "सामग्री", step_2_title: "2. मिलान", step_2_desc: "रचनाकार", step_3_title: "3. लॉन्च", step_3_desc: "पारदर्शिता", reviews_title: "समीक्षा", rev_1: "समय बचत", rev_2: "ROI", rev_3: "विशेषज्ञ", team_title: "टीम", team_desc: "सफलता", faq_title: "प्रश्न", faq_q1: "तेजी?", faq_a1: "7-10 दिन", faq_q2: "भुगतान?", faq_a2: "हाँ", faq_q3: "बजट?", faq_a3: "2k", ft_brands: "ब्रांड्स", ft_creators: "रचनाकार", ft_pricing: "मूल्य", wiz_s1_title: "निकनेम?", wiz_examples: "उदाहरण:", wiz_btn_continue: "आगे", wiz_s2_title: "प्लेटफ़ॉर्म", wiz_btn_back: "पीछे", wiz_s3_title: "लिंक", wiz_s3_desc: "@handle", wiz_btn_find: "खोजें", wiz_s4_title: "दर्शक", wiz_s5_title: "संपर्क", wiz_s5_desc: "ईमेल?", wiz_btn_verify_c: "सत्यापित करें", wiz_analyzing: "विश्लेषण...", wiz_s6_title: "क्या यह आप हैं?", wiz_btn_yes: "हाँ", wiz_btn_no: "नहीं", wiz_s7_title: "जुड़ें", wiz_s7_subtitle: "कमाई करें", wiz_s7_status: "पूर्ण", wiz_s7_desc: "स्वामित्व सत्यापित करें", wiz_s7_ver_title: "सत्यापन", wiz_btn_verify_final: "सत्यापित करें", wiz_s7_ver_note: "Google द्वारा", wiz_s7_acc: "खाते", wiz_s7_pot: "संभावना", wiz_s7_pot_desc_1: "दर्शकों के आधार पर", wiz_s7_pot_desc_2: "अवसर" }
+            es: { nav_about: "Quiénes somos", nav_team: "Equipo", nav_partners: "Marcas", btn_start: "Empezar", hero_badge: "Agencia", hero_title_1: "Tus Anuncios.", hero_title_2: "Ejecución Perfecta.", hero_desc: "Conectamos tu visión.", btn_how: "Cómo funciona", partners_title: "Marcas Globales", stat_1: "Creadores", stat_2: "Éxito", stat_3: "ROI Medio", about_title: "Olvida búsqueda manual", about_desc: "Automatiza la rutina.", step_1_title: "1. Enviar Brief", step_1_desc: "Define audiencia.", step_2_title: "2. Buscamos", step_2_desc: "Mejores creadores.", step_3_title: "3. Lanzar", step_3_desc: "Transparencia total.", reviews_title: "Clientes", rev_1: "Ahorramos 20 horas.", rev_2: "ROI increíble.", rev_3: "Saben de crypto.", team_title: "Equipo", team_desc: "Gente de éxito.", faq_title: "Preguntas", faq_q1: "¿Rapidez?", faq_a1: "7-10 días.", faq_q2: "¿Pagos?", faq_a2: "Sí.", faq_q3: "¿Presupuesto?", faq_a3: "$2k/mes.", ft_brands: "Marcas", ft_creators: "Creadores", ft_pricing: "Precios", wiz_s1_title: "¿Cuál es tu apodo?", wiz_examples: "Prueba:", wiz_btn_continue: "Continuar", wiz_s2_title: "Elige plataforma", wiz_btn_back: "Volver", wiz_s3_title: "Enlace del canal", wiz_s3_desc: "Pega tu @handle.", wiz_btn_find: "Buscar canal", wiz_s4_title: "Audiencia", wiz_s5_title: "Contacto", wiz_s5_desc: "¿Email?", wiz_btn_verify_c: "Verificar", wiz_analyzing: "Analizando...", wiz_s6_title: "¿Eres tú?", wiz_btn_yes: "Sí, soy yo", wiz_btn_no: "No", wiz_err_title: "Canal no encontrado", wiz_err_desc: "No pudimos verificar este canal. Revisa el enlace.", wiz_btn_retry: "Intentar de nuevo", wiz_s7_title: "Únete a MakedBrand", wiz_s7_subtitle: "Monetiza tu influencia", wiz_s7_status: "Perfil completado", wiz_s7_desc: "Verifica propiedad.", wiz_s7_ver_title: "VERIFICACIÓN", wiz_btn_verify_final: "VERIFICAR PROPIEDAD", wiz_s7_ver_note: "Vía Google • < 1 min", wiz_s7_acc: "Cuentas", wiz_s7_pot: "Potencial estimado", wiz_s7_pot_desc_1: "Basado en tu audiencia, tienes", wiz_s7_pot_desc_2: "oportunidades por valor de" },
+            fr: { nav_about: "Qui sommes-nous", nav_team: "Équipe", nav_partners: "Marques", btn_start: "Commencer", hero_badge: "Agence", hero_title_1: "Vos Pubs.", hero_title_2: "Parfaite.", hero_desc: "Connectez votre vision.", btn_how: "Fonctionnement", partners_title: "Marques Globales", stat_1: "Créateurs", stat_2: "Succès", stat_3: "ROI Moyen", about_title: "Oubliez manuel", about_desc: "Automatisez.", step_1_title: "1. Brief", step_1_desc: "Définir audience.", step_2_title: "2. Match", step_2_desc: "Meilleurs créateurs.", step_3_title: "3. Lancer", step_3_desc: "Transparence.", reviews_title: "Avis Clients", rev_1: "Gain de temps.", rev_2: "Super ROI.", rev_3: "Expert crypto.", team_title: "Équipe", team_desc: "Succès.", faq_title: "FAQ", faq_q1: "Vitesse ?", faq_a1: "7-10 jours.", faq_q2: "Paiements ?", faq_a2: "Oui.", faq_q3: "Budget ?", faq_a3: "2k$.", ft_brands: "Marques", ft_creators: "Créateurs", ft_pricing: "Tarifs", wiz_s1_title: "Quel est ton pseudo ?", wiz_examples: "Ex :", wiz_btn_continue: "Continuer", wiz_s2_title: "Plateforme", wiz_btn_back: "Retour", wiz_s3_title: "Lien chaîne", wiz_s3_desc: "Collez votre @handle.", wiz_btn_find: "Trouver", wiz_s4_title: "Audience", wiz_s5_title: "Contact", wiz_s5_desc: "Email ?", wiz_btn_verify_c: "Vérifier", wiz_analyzing: "Analyse...", wiz_s6_title: "C'est vous ?", wiz_btn_yes: "Oui", wiz_btn_no: "Non", wiz_err_title: "Chaîne introuvable", wiz_err_desc: "Impossible de vérifier. Vérifiez le lien.", wiz_btn_retry: "Réessayer", wiz_s7_title: "Rejoignez MakedBrand", wiz_s7_subtitle: "Monétisez.", wiz_s7_status: "Profil complet", wiz_s7_desc: "Vérifiez propriété.", wiz_s7_ver_title: "VÉRIFICATION", wiz_btn_verify_final: "VÉRIFIER PROPRIÉTÉ", wiz_s7_ver_note: "Via Google • < 1 min", wiz_s7_acc: "Comptes", wiz_s7_pot: "Potentiel", wiz_s7_pot_desc_1: "Selon votre audience, vous avez", wiz_s7_pot_desc_2: "opportunités valant" },
+            de: { nav_about: "Über uns", nav_team: "Team", nav_partners: "Marken", btn_start: "Starten", hero_badge: "Agentur", hero_title_1: "Werbung.", hero_title_2: "Perfekt.", hero_desc: "Verbindet Vision.", btn_how: "Funktion", partners_title: "Globale Marken", stat_1: "Creator", stat_2: "Erfolg", stat_3: "Ø ROI", about_title: "Keine manuelle Suche", about_desc: "Automatisiere.", step_1_title: "1. Briefing", step_1_desc: "Zielgruppe.", step_2_title: "2. Match", step_2_desc: "Beste Creator.", step_3_title: "3. Start", step_3_desc: "Transparenz.", reviews_title: "Kunden", rev_1: "Zeit gespart.", rev_2: "Super ROI.", rev_3: "Crypto Experten.", team_title: "Team", team_desc: "Erfolg.", faq_title: "FAQ", faq_q1: "Dauer?", faq_a1: "7-10 Tage.", faq_q2: "Zahlungen?", faq_a2: "Ja.", faq_q3: "Budget?", faq_a3: "2k$.", ft_brands: "Marken", ft_creators: "Creator", ft_pricing: "Preise", wiz_s1_title: "Dein Nickname?", wiz_examples: "Bsp:", wiz_btn_continue: "Weiter", wiz_s2_title: "Plattform", wiz_btn_back: "Zurück", wiz_s3_title: "Kanal-Link", wiz_s3_desc: "Füge @handle ein.", wiz_btn_find: "Suchen", wiz_s4_title: "Zuschauer", wiz_s5_title: "Kontakt", wiz_s5_desc: "Email?", wiz_btn_verify_c: "Prüfen", wiz_analyzing: "Analysiere...", wiz_s6_title: "Bist du das?", wiz_btn_yes: "Ja", wiz_btn_no: "Nein", wiz_err_title: "Kanal nicht gefunden", wiz_err_desc: "Konnte nicht verifiziert werden. Prüfe den Link.", wiz_btn_retry: "Erneut versuchen", wiz_s7_title: "Tritt bei", wiz_s7_subtitle: "Monetarisieren.", wiz_s7_status: "Profil fertig", wiz_s7_desc: "Verifiziere Kanal.", wiz_s7_ver_title: "VERIFIZIERUNG", wiz_btn_verify_final: "KANAL VERIFIZIEREN", wiz_s7_ver_note: "Via Google • < 1 Min", wiz_s7_acc: "Konten", wiz_s7_pot: "Potenzial", wiz_s7_pot_desc_1: "Basierend auf Audience", wiz_s7_pot_desc_2: "Chancen im Wert von" },
+            pt: { nav_about: "Quem somos", nav_team: "Equipe", nav_partners: "Marcas", btn_start: "Começar", hero_badge: "Agência", hero_title_1: "Anúncios.", hero_title_2: "Perfeita.", hero_desc: "Sua visão.", btn_how: "Como funciona", partners_title: "Marcas Globais", stat_1: "Criadores", stat_2: "Sucesso", stat_3: "ROI Médio", about_title: "Esqueça manual", about_desc: "Automatize.", step_1_title: "1. Briefing", step_1_desc: "Audiência.", step_2_title: "2. Match", step_2_desc: "Melhores criadores.", step_3_title: "3. Lançar", step_3_desc: "Transparência.", reviews_title: "Clientes", rev_1: "Tempo salvo.", rev_2: "ROI incrível.", rev_3: "Expert crypto.", team_title: "Equipe", team_desc: "Sucesso.", faq_title: "FAQ", faq_q1: "Rápido?", faq_a1: "7-10 dias.", faq_q2: "Pagamentos?", faq_a2: "Sim.", faq_q3: "Orçamento?", faq_a3: "2k$.", ft_brands: "Marcas", ft_creators: "Criadores", ft_pricing: "Preços", wiz_s1_title: "Seu apelido?", wiz_examples: "Ex:", wiz_btn_continue: "Continuar", wiz_s2_title: "Plataforma", wiz_btn_back: "Voltar", wiz_s3_title: "Link do canal", wiz_s3_desc: "Cole seu @handle.", wiz_btn_find: "Buscar", wiz_s4_title: "Audiência", wiz_s5_title: "Contato", wiz_s5_desc: "Email?", wiz_btn_verify_c: "Verificar", wiz_analyzing: "Analisando...", wiz_s6_title: "É você?", wiz_btn_yes: "Sim", wiz_btn_no: "Não", wiz_err_title: "Canal não encontrado", wiz_err_desc: "Não conseguimos verificar. Verifique o link.", wiz_btn_retry: "Tentar novamente", wiz_s7_title: "Junte-se a nós", wiz_s7_subtitle: "Monetize.", wiz_s7_status: "Perfil completo", wiz_s7_desc: "Verifique propriedade.", wiz_s7_ver_title: "VERIFICAÇÃO", wiz_btn_verify_final: "VERIFICAR PROPRIEDADE", wiz_s7_ver_note: "Via Google • < 1 min", wiz_s7_acc: "Contas", wiz_s7_pot: "Potencial", wiz_s7_pot_desc_1: "Baseado na audiência", wiz_s7_pot_desc_2: "oportunidades valendo" },
+            hi: { nav_about: "हम कौन हैं", nav_team: "टीम", nav_partners: "ब्रांड्स", btn_start: "शुरू करें", hero_badge: "एजेंसी", hero_title_1: "विज्ञापन", hero_title_2: "उत्तम", hero_desc: "दृष्टि जोड़ें", btn_how: "कैसे काम करता है", partners_title: "विश्वसनीय", stat_1: "रचनाकार", stat_2: "सफलता", stat_3: "ROI", about_title: "स्वचालित", about_desc: "कोल्ड ईमेल बंद", step_1_title: "1. विवरण", step_1_desc: "सामग्री", step_2_title: "2. मिलान", step_2_desc: "रचनाकार", step_3_title: "3. लॉन्च", step_3_desc: "पारदर्शिता", reviews_title: "समीक्षा", rev_1: "समय बचत", rev_2: "ROI", rev_3: "विशेषज्ञ", team_title: "टीम", team_desc: "सफलता", faq_title: "प्रश्न", faq_q1: "तेजी?", faq_a1: "7-10 दिन", faq_q2: "भुगतान?", faq_a2: "हाँ", faq_q3: "बजट?", faq_a3: "2k", ft_brands: "ब्रांड्स", ft_creators: "रचनाकार", ft_pricing: "मूल्य", wiz_s1_title: "निकनेम?", wiz_examples: "उदाहरण:", wiz_btn_continue: "आगे", wiz_s2_title: "प्लेटफ़ॉर्म", wiz_btn_back: "पीछे", wiz_s3_title: "लिंक", wiz_s3_desc: "@handle", wiz_btn_find: "खोजें", wiz_s4_title: "दर्शक", wiz_s5_title: "संपर्क", wiz_s5_desc: "ईमेल?", wiz_btn_verify_c: "सत्यापित करें", wiz_analyzing: "विश्लेषण...", wiz_s6_title: "क्या यह आप हैं?", wiz_btn_yes: "हाँ", wiz_btn_no: "नहीं", wiz_err_title: "चैनल नहीं मिला", wiz_err_desc: "हम सत्यापित नहीं कर सके। लिंक जांचें।", wiz_btn_retry: "पुनः प्रयास करें", wiz_s7_title: "जुड़ें", wiz_s7_subtitle: "कमाई करें", wiz_s7_status: "पूर्ण", wiz_s7_desc: "स्वामित्व सत्यापित करें", wiz_s7_ver_title: "सत्यापन", wiz_btn_verify_final: "सत्यापित करें", wiz_s7_ver_note: "Google द्वारा", wiz_s7_acc: "खाते", wiz_s7_pot: "संभावना", wiz_s7_pot_desc_1: "दर्शकों के आधार पर", wiz_s7_pot_desc_2: "अवसर" }
         };
 
         function changeLang(lang, flagCode) {
