@@ -893,45 +893,92 @@
 
             const handleInput = document.getElementById('input-handle');
             const nickInput = document.getElementById('input-nickname');
-            const val1 = handleInput ? handleInput.value : '';
-            const val2 = nickInput ? nickInput.value : '';
             
-            // Берем то, что ввел юзер
-            let query = val1.trim() ? val1 : val2;
-            // Чистим ссылку от лишнего
-            query = query.replace('https://www.youtube.com/', '').replace('youtube.com/', '').replace('@', '');
+            // Берем введенное значение и убираем пробелы
+            let val = (handleInput ? handleInput.value : '') || (nickInput ? nickInput.value : '');
+            val = val.trim();
+
+            let finalChannelId = null; // Если найдем ID сразу
+            let searchQuery = null;    // Если придется искать через поиск
+
+            // --- 1. ПРОВЕРКА НА ЧИСТЫЙ ID (UC...) ---
+            // ID канала всегда начинается на UC и имеет длину ~24 символа
+            const rawIdPattern = /^UC[\w-]{21,}$/;
+            
+            // --- 2. ПРОВЕРКА НА ССЫЛКУ С ID ---
+            const urlIdPattern = /channel\/(UC[\w-]{21,})/;
+
+            // --- 3. ПРОВЕРКА НА HANDLE (@...) ---
+            const handlePattern = /(@[\w\-\.]+)/;
+
+            // ЛОГИКА ОПРЕДЕЛЕНИЯ
+            if (rawIdPattern.test(val)) {
+                // Юзер ввел чистый ID (UCDyG...)
+                finalChannelId = val;
+            } else if (val.match(urlIdPattern)) {
+                // Юзер ввел ссылку youtube.com/channel/UCDyG...
+                finalChannelId = val.match(urlIdPattern)[1];
+            } else {
+                // Это не ID, значит это Хендл или Имя. Будем искать.
+                const handleMatch = val.match(handlePattern);
+                if (handleMatch) {
+                    // Нашли @handle (в ссылке или тексте)
+                    searchQuery = handleMatch[1];
+                } else {
+                    // Просто текст или старая ссылка. Чистим от мусора.
+                    searchQuery = val
+                        .replace(/https?:\/\/(www\.|m\.)?youtube\.com\//, '')
+                        .replace(/https?:\/\/youtu\.be\//, '')
+                        .replace(/\/c\//, '')
+                        .replace(/\/user\//, '')
+                        .split('?')[0]
+                        .replace(/\/$/, '');
+                }
+            }
 
             try {
-                // 1. Ищем канал через YouTube API
-                const searchUrl = `https://www.googleapis.com/youtube/v3/search?part=snippet&type=channel&q=${encodeURIComponent(query)}&key=${YOUTUBE_API_KEY}`;
-                const searchRes = await fetch(searchUrl);
-                const searchData = await searchRes.json();
+                let channelInfo = null;
 
-                if (!searchData.items || searchData.items.length === 0) {
-                    throw new Error("Channel not found");
+                // --- ВАРИАНТ А: У НАС УЖЕ ЕСТЬ ID (ЭКОНОМИМ КВОТЫ) ---
+                if (finalChannelId) {
+                    console.log("Direct ID detected:", finalChannelId);
+                    const statsUrl = `https://www.googleapis.com/youtube/v3/channels?part=snippet,statistics&id=${finalChannelId}&key=${YOUTUBE_API_KEY}`;
+                    const res = await fetch(statsUrl);
+                    if (!res.ok) throw new Error("API Error");
+                    const data = await res.json();
+                    
+                    if (!data.items || data.items.length === 0) throw new Error("ID not found");
+                    channelInfo = data.items[0];
+                } 
+                
+                // --- ВАРИАНТ Б: НУЖНО ИСКАТЬ (SEARCH API) ---
+                else {
+                    console.log("Searching for:", searchQuery);
+                    const searchUrl = `https://www.googleapis.com/youtube/v3/search?part=snippet&type=channel&q=${encodeURIComponent(searchQuery)}&key=${YOUTUBE_API_KEY}`;
+                    const searchRes = await fetch(searchUrl);
+                    if (!searchRes.ok) throw new Error("Search API Error");
+                    const searchData = await searchRes.json();
+
+                    if (!searchData.items || searchData.items.length === 0) throw new Error("Channel not found");
+
+                    const foundId = searchData.items[0].snippet.channelId;
+
+                    // Теперь получаем статистику по найденному ID
+                    const statsUrl = `https://www.googleapis.com/youtube/v3/channels?part=snippet,statistics&id=${foundId}&key=${YOUTUBE_API_KEY}`;
+                    const statsRes = await fetch(statsUrl);
+                    const statsData = await statsRes.json();
+                    
+                    if (!statsData.items || statsData.items.length === 0) throw new Error("Stats not found");
+                    channelInfo = statsData.items[0];
                 }
 
-                const channelId = searchData.items[0].snippet.channelId;
-
-                // 2. Получаем статистику (подписчики и аватарка)
-                const statsUrl = `https://www.googleapis.com/youtube/v3/channels?part=snippet,statistics&id=${channelId}&key=${YOUTUBE_API_KEY}`;
-                const statsRes = await fetch(statsUrl);
-                const statsData = await statsRes.json();
-
-                if (!statsData.items || statsData.items.length === 0) {
-                    throw new Error("Stats not found");
-                }
-
-                const channelInfo = statsData.items[0];
-
-                // 3. Заполняем сайт данными
+                // --- ЗАПОЛНЯЕМ UI ---
                 detectedChannel.title = channelInfo.snippet.title;
                 detectedChannel.avatar = channelInfo.snippet.thumbnails.default.url;
                 
-                // Форматируем число подписчиков
                 let subsRaw = channelInfo.statistics.subscriberCount;
-                detectedChannel.subsCount = parseInt(subsRaw);
-                detectedChannel.subsText = formatSubs(detectedChannel.subsCount);
+                detectedChannel.subsCount = subsRaw ? parseInt(subsRaw) : 0;
+                detectedChannel.subsText = formatSubs(detectedChannel.subsCount); // Если скрыты, будет 0
 
                 updateStep6UI();
                 
