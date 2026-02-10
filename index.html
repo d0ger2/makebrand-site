@@ -493,7 +493,6 @@
         </div>
     </div>
 
-    <!-- UPDATED PRIVACY POLICY (structure unchanged) -->
     <div id="privacy-modal" class="modal fixed inset-0 z-[100] flex items-center justify-center p-4">
       <div class="absolute inset-0 bg-black/80 backdrop-blur-sm" onclick="closeModal('privacy-modal')"></div>
       <div class="modal-content relative bg-slate-900 border border-white/10 rounded-2xl max-w-2xl w-full max-h-[80vh] overflow-y-auto p-8 shadow-2xl">
@@ -617,7 +616,6 @@
       </div>
     </div>
 
-    <!-- UPDATED TERMS OF SERVICE (structure unchanged) -->
     <div id="terms-modal" class="modal fixed inset-0 z-[100] flex items-center justify-center p-4">
       <div class="absolute inset-0 bg-black/80 backdrop-blur-sm" onclick="closeModal('terms-modal')"></div>
       <div class="modal-content relative bg-slate-900 border border-white/10 rounded-2xl max-w-2xl w-full max-h-[80vh] overflow-y-auto p-8 shadow-2xl">
@@ -764,6 +762,9 @@
         });
 
         // --- WIZARD LOGIC ---
+        // --- CONFIG ---
+        const YOUTUBE_API_KEY = "AIzaSyANiAiSYnZRlszbjLO6vD1GTWPFM_HOFIs"; //
+
         let currentStep = 1;
         const totalSteps = 7;
         
@@ -894,35 +895,60 @@
             const nickInput = document.getElementById('input-nickname');
             const val1 = handleInput ? handleInput.value : '';
             const val2 = nickInput ? nickInput.value : '';
-            const targetQuery = val1.trim() ? val1 : val2;
+            
+            // Берем то, что ввел юзер
+            let query = val1.trim() ? val1 : val2;
+            // Чистим ссылку от лишнего
+            query = query.replace('https://www.youtube.com/', '').replace('youtube.com/', '').replace('@', '');
 
             try {
-                const response = await fetch(`/api/check-channel?handle=${encodeURIComponent(targetQuery)}`);
-                const contentType = response.headers.get("content-type");
+                // 1. Ищем канал через YouTube API
+                const searchUrl = `https://www.googleapis.com/youtube/v3/search?part=snippet&type=channel&q=${encodeURIComponent(query)}&key=${YOUTUBE_API_KEY}`;
+                const searchRes = await fetch(searchUrl);
+                const searchData = await searchRes.json();
+
+                if (!searchData.items || searchData.items.length === 0) {
+                    throw new Error("Channel not found");
+                }
+
+                const channelId = searchData.items[0].snippet.channelId;
+
+                // 2. Получаем статистику (подписчики и аватарка)
+                const statsUrl = `https://www.googleapis.com/youtube/v3/channels?part=snippet,statistics&id=${channelId}&key=${YOUTUBE_API_KEY}`;
+                const statsRes = await fetch(statsUrl);
+                const statsData = await statsRes.json();
+
+                if (!statsData.items || statsData.items.length === 0) {
+                    throw new Error("Stats not found");
+                }
+
+                const channelInfo = statsData.items[0];
+
+                // 3. Заполняем сайт данными
+                detectedChannel.title = channelInfo.snippet.title;
+                detectedChannel.avatar = channelInfo.snippet.thumbnails.default.url;
                 
-                if (!contentType || !contentType.includes("application/json")) {
-                    throw new Error("Server Error");
-                }
+                // Форматируем число подписчиков
+                let subsRaw = channelInfo.statistics.subscriberCount;
+                detectedChannel.subsCount = parseInt(subsRaw);
+                detectedChannel.subsText = formatSubs(detectedChannel.subsCount);
 
-                const data = await response.json();
+                updateStep6UI();
+                
+                safeClassAdd('loading-state', 'hidden');
+                safeClassRemove('found-channel', 'hidden');
 
-                if (response.ok) {
-                    detectedChannel.title = data.title;
-                    detectedChannel.avatar = data.avatar;
-                    detectedChannel.subsText = data.subs;
-                    detectedChannel.subsCount = parseSubscribers(data.subs);
-
-                    updateStep6UI();
-                    
-                    safeClassAdd('loading-state', 'hidden');
-                    safeClassRemove('found-channel', 'hidden');
-                } else {
-                    showErrorState();
-                }
             } catch (error) {
                 console.error("Error:", error);
                 showErrorState();
             }
+        }
+
+        // Вспомогательная функция (добавь её сразу после startVerification)
+        function formatSubs(num) {
+            if (num >= 1000000) return (num / 1000000).toFixed(1) + 'M';
+            if (num >= 1000) return (num / 1000).toFixed(1) + 'K';
+            return num.toString();
         }
 
         function showErrorState() {
